@@ -3,12 +3,19 @@ import { CaseSummaryInput } from './components/CaseSummaryInput';
 import { ResultsPanel } from './components/ResultsPanel';
 import { analyzeLegalCase } from './services/legalAnalysis';
 
+type HistoryItem = {
+  id: number;
+  text: string;
+  analysis: any;
+  time: string;
+};
+
 function App() {
   const [caseText, setCaseText] = useState('');
   const [analysis, setAnalysis] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [history, setHistory] = useState([]);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
   const [showHistory, setShowHistory] = useState(false);
 
   // Load history from localStorage on mount
@@ -55,7 +62,7 @@ function App() {
     setError(null);
   };
 
-  const handleReopenCase = (item) => {
+  const handleReopenCase = (item: HistoryItem) => {
     setCaseText(item.text);
     setAnalysis(item.analysis);
     setShowHistory(false);
@@ -103,7 +110,7 @@ function App() {
               <p className="text-slate-500">No previous cases found.</p>
             ) : (
               <ul className="space-y-4">
-                {history.map(item => (
+                {history.map((item: HistoryItem) => (
                   <li key={item.id} className="border-b pb-2">
                     <div className="font-medium text-slate-800 truncate">{item.text.split('\n')[0].slice(0, 60) || 'Untitled Case'}</div>
                     <div className="text-xs text-slate-500 mb-1">{item.time}</div>
