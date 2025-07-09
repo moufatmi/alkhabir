@@ -20,6 +20,7 @@ function App() {
   const [showHistory, setShowHistory] = useState(false);
   const [showLegalQuestion, setShowLegalQuestion] = useState(false);
   const [clarifyingQuestions, setClarifyingQuestions] = useState<string[]>([]);
+  const [clarifyingQuestionsRaw, setClarifyingQuestionsRaw] = useState('');
   const [isQuestionsLoading, setIsQuestionsLoading] = useState(false);
 
   // Load history from localStorage on mount
@@ -50,26 +51,29 @@ function App() {
         }
         if (ignore) return;
         let questions: string[] = [];
-        if (Array.isArray(result)) {
-          questions = result;
-        } else if (typeof result === 'string') {
-          questions = result.split(/\n|\r/).filter((q) => q.trim().length > 0);
+        let rawText = '';
+        if (typeof result === 'string') {
+          questions = result.split(/\n|\r/).map(q => q.trim()).filter(q => q.length > 0);
+        } else if (result && typeof result === 'object' && result.raw && typeof result.raw === 'string') {
+          questions = result.raw.split(/\n|\r/).map(q => q.trim()).filter(q => q.length > 0);
         } else if (result && typeof result === 'object') {
           // Try to find the first array property
           const arrProp = Object.values(result).find((v) => Array.isArray(v));
           if (arrProp) {
             questions = arrProp as string[];
           } else if (result.raw && typeof result.raw === 'string') {
+            rawText = result.raw.trim();
             // Extract lines that look like numbered or asterisked questions
             questions = result.raw
               .split(/\n|\r/)
               .map((line: string) => line.trim())
-              .filter((line: string) => /^\d+\./.test(line) || /^\*\*/.test(line))
-              .map((line: string) => line.replace(/^\d+\.\s*|^\*\*\s*/g, ''));
+              .filter((line: string) => /^\d+\.\s*(\*\*)?/.test(line))
+              .map((line: string) => line.replace(/^\d+\.\s*(\*\*)?\s*/, '').replace(/\*\*$/, '').trim());
             // Fallback: if no questions found, show the whole raw as one question
             if (questions.length === 0) {
-              questions = [result.raw.trim()];
+              questions = [rawText];
             }
+            console.log('Parsed clarifying questions:', questions);
           } else {
             // Try to find the first string property and split by lines
             const strProp = Object.values(result).find((v) => typeof v === 'string');
@@ -79,6 +83,7 @@ function App() {
           }
         }
         setClarifyingQuestions(questions);
+        setClarifyingQuestionsRaw(rawText);
       })
       .catch(() => {
         if (!ignore) setClarifyingQuestions([]);
@@ -235,6 +240,9 @@ function App() {
                   </ul>
                 ) : (
                   <div className="text-slate-500">لا توجد أسئلة توضيحية حالياً.</div>
+                )}
+                {clarifyingQuestionsRaw && clarifyingQuestions.length <= 1 && (
+                  <pre className="text-xs text-slate-400 mt-2 whitespace-pre-wrap">{clarifyingQuestionsRaw}</pre>
                 )}
               </div>
             )}
