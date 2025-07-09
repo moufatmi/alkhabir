@@ -39,6 +39,5 @@
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.3.0",
     "vite": "^7.0.3"
-  },
-  "homepage": "https://moufatmi.github.io/alkhabir/"
+  }
 }
