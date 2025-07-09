@@ -1,6 +1,9 @@
-import React from 'react';
-import { Scale, AlertTriangle, Clock } from 'lucide-react';
+import React, { useRef } from 'react';
+import { Scale, AlertTriangle, Clock, Copy, Printer } from 'lucide-react';
+import { useReactToPrint } from 'react-to-print';
 import { LegalAnalysis } from '../types';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 interface ResultsPanelProps {
   analysis: LegalAnalysis | null;
@@ -8,16 +11,85 @@ interface ResultsPanelProps {
   error: string | null;
 }
 
-const Section = ({ title, items }: { title: string; items: string[] }) => (
-  <div className="mb-6">
-    <div className="font-semibold text-blue-800 mb-2 text-lg">{title}</div>
-    <ul className="list-disc pr-6 space-y-1 text-lg text-slate-900">
-      {items && items.length > 0 ? items.map((item, i) => <li key={i}>{item}</li>) : <li>لا يوجد بيانات</li>}
-    </ul>
+const sections = [
+  { key: 'التكييف_القانوني', label: 'التكييف القانوني', color: 'blue' },
+  { key: 'النصوص_القانونية_ذات_الصلة', label: 'النصوص القانونية ذات الصلة', color: 'amber' },
+  { key: 'الوقائع_الجوهرية', label: 'الوقائع الجوهرية', color: 'slate' },
+  { key: 'العناصر_المادية_والمعنوية', label: 'العناصر المادية والمعنوية', color: 'purple' },
+  { key: 'الدفاعات_الممكنة', label: 'الدفاعات الممكنة', color: 'red' },
+  { key: 'الإجراءات_المقترحة', label: 'الإجراءات المقترحة', color: 'green' },
+  { key: 'سوابق_قضائية_مغربية_محتملة', label: 'سوابق قضائية مغربية محتملة', color: 'indigo' },
+];
+
+const colorMap: Record<string, string> = {
+  blue: 'border-blue-400 bg-blue-50',
+  amber: 'border-amber-400 bg-amber-50',
+  slate: 'border-slate-400 bg-slate-50',
+  purple: 'border-purple-400 bg-purple-50',
+  red: 'border-red-400 bg-red-50',
+  green: 'border-green-400 bg-green-50',
+  indigo: 'border-indigo-400 bg-indigo-50',
+};
+
+const AccordionSection = ({ title, items, color, open, onClick }: { title: string; items: string[]; color: string; open: boolean; onClick: () => void }) => (
+  <div className={`mb-3 rounded-xl border ${colorMap[color]} transition-all`}> 
+    <button
+      className="w-full flex justify-between items-center px-5 py-3 text-right font-bold text-lg focus:outline-none"
+      onClick={onClick}
+      type="button"
+    >
+      <span>{title}</span>
+      <span>{open ? '▲' : '▼'}</span>
+    </button>
+    {open && (
+      <div className="px-6 pb-4 pt-1">
+        <ul className="list-disc pr-6 space-y-1 text-md text-slate-900">
+          {items && items.length > 0 ? items.map(item => <li key={item}>{item}</li>) : <li>لا يوجد بيانات</li>}
+        </ul>
+      </div>
+    )}
   </div>
 );
 
 export const ResultsPanel: React.FC<ResultsPanelProps> = ({ analysis, isLoading, error }) => {
+  const [openIndex, setOpenIndex] = React.useState<number | null>(0);
+  const [forceOpenAll, setForceOpenAll] = React.useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  const handlePrint = useReactToPrint({
+    content: () => panelRef.current,
+    documentTitle: 'Legal Analysis',
+  });
+
+  const handleDownloadPDF = async () => {
+    setForceOpenAll(true);
+    setTimeout(async () => {
+      if (!panelRef.current) return;
+      // Hide buttons for PDF snapshot
+      const buttons = panelRef.current.querySelectorAll('button');
+      buttons.forEach(btn => (btn as HTMLElement).style.display = 'none');
+      // Wait for UI to update
+      await new Promise(res => setTimeout(res, 200));
+      // Capture panel as image
+      const canvas = await html2canvas(panelRef.current, { scale: 2 });
+      const imgData = canvas.toDataURL('image/png');
+      // Restore buttons
+      buttons.forEach(btn => (btn as HTMLElement).style.display = '');
+      setForceOpenAll(false);
+      // Create PDF
+      const pdf = new jsPDF({ orientation: 'p', unit: 'pt', format: 'a4' });
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      // Calculate image dimensions to fit page
+      const imgProps = { width: canvas.width, height: canvas.height };
+      const ratio = Math.min(pageWidth / imgProps.width, (pageHeight - 60) / imgProps.height);
+      const imgWidth = imgProps.width * ratio;
+      const imgHeight = imgProps.height * ratio;
+      pdf.addImage(imgData, 'PNG', (pageWidth - imgWidth) / 2, 30, imgWidth, imgHeight);
+      pdf.save('legal-analysis.pdf');
+    }, 800);
+  };
+
   if (isLoading) {
     return (
       <div className="bg-white rounded-lg shadow-lg p-6 border border-slate-200">
@@ -84,20 +156,60 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({ analysis, isLoading,
     );
   }
 
-  // Beautiful Arabic-friendly structured display
+  // Copy all analysis as formatted text
+  const handleCopy = () => {
+    let text = '';
+    sections.forEach(({ key, label }) => {
+      const items = (analysis as any)[key] as string[];
+      if (items && items.length > 0) {
+        text += `\n${label}:\n`;
+        items.forEach(item => {
+          text += `- ${item}\n`;
+        });
+      }
+    });
+    navigator.clipboard.writeText(text.trim());
+  };
+
   return (
-    <div className="bg-white rounded-2xl shadow-2xl p-8 border border-blue-200" dir="rtl" style={{ fontFamily: 'Segoe UI, Tahoma, Arial, sans-serif' }}>
+    <div className="bg-white rounded-2xl shadow-2xl p-8 border border-blue-200" dir="rtl" style={{ fontFamily: 'Segoe UI, Tahoma, Arial, sans-serif' }} ref={panelRef}>
       <div className="flex items-center gap-3 mb-6">
         <Scale className="w-6 h-6 text-blue-700" />
         <h3 className="text-2xl font-bold text-blue-900 tracking-tight">نتائج التحليل القانوني</h3>
       </div>
-      <Section title="التكييف القانوني" items={analysis.التكييف_القانوني || []} />
-      <Section title="النصوص القانونية ذات الصلة" items={analysis.النصوص_القانونية_ذات_الصلة || []} />
-      <Section title="الوقائع الجوهرية" items={analysis.الوقائع_الجوهرية || []} />
-      <Section title="العناصر المادية والمعنوية" items={analysis.العناصر_المادية_والمعنوية || []} />
-      <Section title="الدفاعات الممكنة" items={analysis.الدفاعات_الممكنة || []} />
-      <Section title="الإجراءات المقترحة" items={analysis.الإجراءات_المقترحة || []} />
-      <Section title="سوابق قضائية مغربية محتملة" items={analysis.سوابق_قضائية_مغربية_محتملة || []} />
+      <div className="flex gap-3 mb-6">
+        <button
+          onClick={handleCopy}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium text-sm shadow transition-all"
+        >
+          <Copy className="w-4 h-4" /> نسخ التحليل
+        </button>
+        <button
+          onClick={handlePrint}
+          className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium text-sm shadow transition-all"
+        >
+          <Printer className="w-4 h-4" /> طباعة التحليل
+        </button>
+        <button
+          onClick={handleDownloadPDF}
+          className="flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-medium text-sm shadow transition-all"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+          تحميل التحليل PDF
+        </button>
+      </div>
+      <div>
+        {sections.map((section, idx) => (
+          <AccordionSection
+            key={section.key}
+            title={section.label}
+            items={(analysis as any)[section.key] || []}
+            color={section.color}
+            open={forceOpenAll || openIndex === idx}
+            onClick={() => setOpenIndex(openIndex === idx ? null : idx)}
+          />
+        ))}
+      </div>
     </div>
   );
 };
