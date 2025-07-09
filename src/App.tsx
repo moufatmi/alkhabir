@@ -154,34 +154,35 @@ function App() {
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-slate-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
+          <div className="flex flex-row-reverse items-center justify-between h-16" dir="rtl">
+            {/* Right: Logo and Title */}
             <div className="flex items-center gap-3">
-              <div className="bg-blue-800 p-2 rounded-lg">
-                {/* Logo icon here if needed */}
-              </div>
+              <div className="bg-blue-800 p-2 rounded-lg"></div>
               <div>
-                <h1 className="text-xl font-bold text-slate-800">Alkhabir | الخبير</h1>
+                <h1 className="text-xl font-bold text-slate-800">الخبير | Alkhabir</h1>
                 <p className="text-sm text-slate-600">المحلل المساعد الذكي للقاضي و القانوني</p>
               </div>
             </div>
+            {/* Center: System Status */}
             <div className="flex items-center gap-2 text-slate-600">
               <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              <span className="text-sm">System Online</span>
+              <span className="text-sm">النظام متصل</span>
             </div>
-            {/* Show Previous Cases Button */}
-            <button
-              onClick={() => setShowHistory(true)}
-              className="ml-4 px-3 py-1 text-xs bg-slate-200 hover:bg-slate-300 rounded"
-            >
-              Show Previous Cases
-            </button>
-            {/* Legal Question Button */}
-            <button
-              onClick={() => setShowLegalQuestion(true)}
-              className="ml-2 px-3 py-1 text-xs bg-blue-200 hover:bg-blue-300 rounded text-blue-900 font-bold"
-            >
-              استشارة قانونية
-            </button>
+            {/* Left: Action Buttons */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowHistory(true)}
+                className="ml-4 px-3 py-1 text-xs bg-slate-200 hover:bg-slate-300 rounded"
+              >
+                عرض القضايا السابقة
+              </button>
+              <button
+                onClick={() => setShowLegalQuestion(true)}
+                className="ml-2 px-3 py-1 text-xs bg-blue-200 hover:bg-blue-300 rounded text-blue-900 font-bold"
+              >
+                استشارة قانونية
+              </button>
+            </div>
           </div>
         </div>
       </header>
@@ -219,16 +220,30 @@ function App() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Left Column - Input */}
-          <div className="space-y-6">
-            <CaseSummaryInput
-              value={caseText}
-              onChange={setCaseText}
+          {/* Right Column - Input (now first in DOM, but visually on the right) */}
+          <div className="order-2 lg:order-1">
+            <ResultsPanel 
+              analysis={analysis} 
+              isLoading={isLoading} 
+              error={error} 
             />
-
+          </div>
+          {/* Left Column - Input (now visually on the right) */}
+          <div className="space-y-6 order-1 lg:order-2" dir="rtl">
+            <div className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-xl font-bold mb-2 text-slate-800">ملخص القضية</h2>
+              <label className="block text-slate-700 mb-2">أدخل تفاصيل القضية، الوقائع، والأطراف المعنية</label>
+              <textarea
+                className="w-full h-32 p-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-right"
+                placeholder="يرجى وصف تفاصيل القضية، الأطراف المعنية، الوقائع الأساسية، وأي ظروف ذات صلة…"
+                value={caseText}
+                onChange={e => setCaseText(e.target.value)}
+                dir="rtl"
+              />
+            </div>
             {/* Clarifying Questions */}
             {caseText.trim() && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-2">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-2" dir="rtl">
                 <h4 className="text-md font-semibold text-blue-800 mb-2">أسئلة توضيحية مقترحة</h4>
                 {isQuestionsLoading ? (
                   <div className="text-blue-600">جاري توليد الأسئلة...</div>
@@ -246,47 +261,36 @@ function App() {
                 )}
               </div>
             )}
-
             {/* Action Buttons */}
-            <div className="flex gap-3">
+            <div className="flex gap-3" dir="rtl">
               <button
                 onClick={handleAnalyzeCase}
                 disabled={isLoading || !caseText.trim()}
                 className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-blue-800 hover:bg-blue-900 disabled:bg-slate-400 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-all"
               >
-                {isLoading ? 'Analyzing...' : 'Analyze Case'}
+                {isLoading ? '...جاري التحليل' : 'حلل القضية'}
               </button>
               <button
                 onClick={handleClearAll}
                 className="px-6 py-3 bg-slate-600 hover:bg-slate-700 text-white rounded-lg font-medium transition-all"
               >
-                Clear All
+                مسح الكل
               </button>
             </div>
-
             {/* Quick Info */}
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4" dir="rtl">
               <div className="flex items-start gap-3">
                 {/* Info icon here if needed */}
                 <div>
-                  <h4 className="text-sm font-medium text-amber-800 mb-1">Analysis Guidelines</h4>
+                  <h4 className="text-sm font-medium text-amber-800 mb-1">إرشادات التحليل</h4>
                   <ul className="text-sm text-amber-700 space-y-1">
-                    <li>• Provide detailed case facts and circumstances</li>
-                    <li>• Include relevant parties and their roles</li>
-                    <li>• Mention any specific legal concerns or questions</li>
+                    <li>• قدم وقائع القضية والظروف بتفصيل</li>
+                    <li>• اذكر الأطراف المعنية وأدوارهم</li>
+                    <li>• أضف أي تساؤلات أو إشكالات قانونية</li>
                   </ul>
                 </div>
               </div>
             </div>
-          </div>
-
-          {/* Right Column - Results */}
-          <div>
-            <ResultsPanel 
-              analysis={analysis} 
-              isLoading={isLoading} 
-              error={error} 
-            />
           </div>
         </div>
       </main>
