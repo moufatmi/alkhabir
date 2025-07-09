@@ -1,8 +1,11 @@
-import { useState, useEffect } from 'react';
-import { CaseSummaryInput } from './components/CaseSummaryInput';
+import React, { useState, useEffect, useRef } from 'react';
 import { ResultsPanel } from './components/ResultsPanel';
 import { analyzeLegalCase, askLegalQuestion, suggestClarifyingQuestions } from './services/legalAnalysis';
 import LegalQuestionPage from './components/LegalQuestionPage';
+import { analyzeLegalText } from './services/textAnalysis';
+import { transcribeAudio } from './services/speechToText';
+import { CaseManagement } from './services/caseManagement';
+import { ReportGenerator } from './services/reportGenerator';
 
 type HistoryItem = {
   id: number;
@@ -22,6 +25,9 @@ function App() {
   const [clarifyingQuestions, setClarifyingQuestions] = useState<string[]>([]);
   const [clarifyingQuestionsRaw, setClarifyingQuestionsRaw] = useState('');
   const [isQuestionsLoading, setIsQuestionsLoading] = useState(false);
+  const [caseDetails, setCaseDetails] = useState('');
+  const [analysisResults, setAnalysisResults] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Load history from localStorage on mount
   useEffect(() => {
@@ -53,9 +59,9 @@ function App() {
         let questions: string[] = [];
         let rawText = '';
         if (typeof result === 'string') {
-          questions = result.split(/\n|\r/).map(q => q.trim()).filter(q => q.length > 0);
+          questions = result.split(/\n|\r/).map((q: string) => q.trim()).filter((q: string) => q.length > 0);
         } else if (result && typeof result === 'object' && result.raw && typeof result.raw === 'string') {
-          questions = result.raw.split(/\n|\r/).map(q => q.trim()).filter(q => q.length > 0);
+          questions = result.raw.split(/\n|\r/).map((q: string) => q.trim()).filter((q: string) => q.length > 0);
         } else if (result && typeof result === 'object') {
           // Try to find the first array property
           const arrProp = Object.values(result).find((v) => Array.isArray(v));
@@ -133,6 +139,55 @@ function App() {
     setShowHistory(false);
   };
 
+  const handleAnalyzeText = async () => {
+    if (!caseDetails.trim()) {
+      alert('الرجاء إدخال تفاصيل القضية');
+      return;
+    }
+    try {
+      const results = await analyzeLegalText(caseDetails);
+      setAnalysisResults(results);
+    } catch (error) {
+      console.error('Error analyzing text:', error);
+      alert('حدث خطأ أثناء تحليل النص');
+    }
+  };
+
+  const handleTranscribeAudio = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      alert('الرجاء اختيار ملف صوتي');
+      return;
+    }
+    try {
+      const transcription = await transcribeAudio(file);
+      setCaseDetails(prevDetails => prevDetails + '\n' + transcription);
+    } catch (error) {
+      console.error('Error transcribing audio:', error);
+      alert('حدث خطأ أثناء تحويل الصوت إلى نص');
+    }
+  };
+
+  const generateCaseReport = () => {
+    if (!caseDetails.trim()) {
+      alert('الرجاء إدخال تفاصيل القضية');
+      return;
+    }
+    try {
+      const caseManager = new CaseManagement();
+      caseManager.addCase('case1');
+      caseManager.addNote('case1', caseDetails);
+
+      const reportGenerator = new ReportGenerator();
+      const report = reportGenerator.generateReport(caseManager.getCase('case1')!);
+      console.log('Generated Report:', report);
+      alert('تم إنشاء التقرير بنجاح');
+    } catch (error) {
+      console.error('Error generating report:', error);
+      alert('حدث خطأ أثناء إنشاء التقرير');
+    }
+  };
+
   if (showLegalQuestion) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
@@ -150,11 +205,11 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50" dir="rtl">
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-slate-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-row-reverse items-center justify-between h-16" dir="rtl">
+          <div className="flex flex-row-reverse items-center justify-between h-16">
             {/* Right: Logo and Title */}
             <div className="flex items-center gap-3">
               <div className="bg-blue-800 p-2 rounded-lg"></div>
@@ -290,6 +345,48 @@ function App() {
                   </ul>
                 </div>
               </div>
+            </div>
+            {/* Transcription Section */}
+            <div className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-xl font-bold mb-2 text-slate-800">نسخ الصوت إلى نص</h2>
+              <input
+                type="file"
+                accept="audio/*"
+                onChange={handleTranscribeAudio}
+                ref={fileInputRef}
+                className="hidden"
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium"
+              >
+                تحويل الصوت إلى نص
+              </button>
+            </div>
+            {/* Report Generation Section */}
+            <div className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-xl font-bold mb-2 text-slate-800">توليد التقرير</h2>
+              <button
+                onClick={async () => {
+                  if (!analysis) {
+                    setError('يرجى تحليل القضية أولاً.');
+                    return;
+                  }
+                  setIsLoading(true);
+                  setError(null);
+                  try {
+                    const reportUrl = await ReportGenerator.generateReport(analysis);
+                    window.open(reportUrl, '_blank');
+                  } catch (err) {
+                    setError('فشل توليد التقرير.');
+                  } finally {
+                    setIsLoading(false);
+                  }
+                }}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium"
+              >
+                توليد تقرير PDF
+              </button>
             </div>
           </div>
         </div>
