@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ResultsPanel } from './components/ResultsPanel';
 import { analyzeLegalCase, askLegalQuestion, suggestClarifyingQuestions } from './services/legalAnalysis';
 import LegalQuestionPage from './components/LegalQuestionPage';
-import { analyzeLegalText } from './services/textAnalysis';
 import { transcribeAudio } from './services/speechToText';
 import { ReportGenerator } from './services/reportGenerator';
 
@@ -15,12 +14,11 @@ type HistoryItem = {
 
 function App() {
   const [caseText, setCaseText] = useState('');
-  const [caseDetails, setCaseDetails] = useState('');
   const [analysis, setAnalysis] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<HistoryItem[]>([]);
-  const [showHistory, setShowHistory] = useState(false);
+  // const [showHistory, setShowHistory] = useState(false);
   const [showLegalQuestion, setShowLegalQuestion] = useState(false);
   const [clarifyingQuestions, setClarifyingQuestions] = useState<string[]>([]);
   const [clarifyingQuestionsRaw, setClarifyingQuestionsRaw] = useState('');
@@ -133,11 +131,11 @@ function App() {
     setError(null);
   };
 
-  const handleReopenCase = (item: HistoryItem) => {
-    setCaseText(item.text);
-    setAnalysis(item.analysis);
-    setShowHistory(false);
-  };
+  // const handleReopenCase = (item: HistoryItem) => {
+  //   setCaseText(item.text);
+  //   setAnalysis(item.analysis);
+  //   // setShowHistory(false);
+  // };
 
 
   const handleTranscribeAudio = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -153,12 +151,8 @@ function App() {
       const transcription = await transcribeAudio(file);
       console.log('Received transcription:', transcription);
       setTranscriptionResult(transcription);
-      setCaseDetails(prevDetails => prevDetails 
-        ? `${prevDetails}\n\n=== تحويل الصوت إلى نص ===\n${transcription}`
-        : transcription
-      );
+      setTranscriptionResult(transcription);
     } catch (error) {
-      console.error('Error transcribing audio:', error);
       alert('حدث خطأ أثناء تحويل الصوت إلى نص');
     } finally {
       setIsTranscribing(false);
@@ -192,25 +186,29 @@ function App() {
           <div className="flex flex-row-reverse items-center justify-between h-16">
             {/* Right: Logo and Title */}
             <div className="flex items-center gap-3">
-              <div className="bg-blue-800 p-2 rounded-lg"></div>
+              <img 
+                src="/logo.svg" 
+                alt="Scales of Justice" 
+                className="w-12 h-12"
+              />
               <div>
-                <h1 className="text-xl font-bold text-slate-800">الخبير | Alkhabir</h1>
-                <p className="text-sm text-slate-600">المحلل المساعد الذكي للقاضي و القانوني</p>
+                <h1 className="text-xl font-bold text-slate-800 aref-ruqaa-bold">الخبير | Alkhabir</h1>
+                <p className="text-sm text-slate-600 aref-ruqaa-regular">المساعد الذكي للقانوني و القاضي</p>
               </div>
             </div>
             {/* Center: System Status */}
             <div className="flex items-center gap-2 text-slate-600">
               <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              <span className="text-sm">النظام متصل</span>
+              <span className="text-sm aref-ruqaa-regular">النظام متصل</span>
             </div>
             {/* Left: Action Buttons */}
             <div className="flex items-center gap-2">
-              <button
+              {/* <button
                 onClick={() => setShowHistory(true)}
                 className="ml-4 px-3 py-1 text-xs bg-slate-200 hover:bg-slate-300 rounded"
               >
                 عرض القضايا السابقة
-              </button>
+              </button> */}
               <button
                 onClick={() => setShowLegalQuestion(true)}
                 className="ml-2 px-3 py-1 text-xs bg-blue-200 hover:bg-blue-300 rounded text-blue-900 font-bold"
@@ -223,7 +221,7 @@ function App() {
       </header>
 
       {/* History Modal */}
-      {showHistory && (
+      {/* {showHistory && (
         <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md max-h-[80vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
@@ -250,7 +248,7 @@ function App() {
             )}
           </div>
         </div>
-      )}
+      )} */}
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

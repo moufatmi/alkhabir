@@ -16,5 +16,5 @@ export default defineConfig({
       },
     },
   },
-  base: '/alkhabir/',
+  base: '/', // Updated base for custom domain
 });
