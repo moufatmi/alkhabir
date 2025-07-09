@@ -1,5 +1,5 @@
 import React from 'react';
-import { Scale, BookOpen, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
+import { Scale, AlertTriangle, Clock } from 'lucide-react';
 import { LegalAnalysis } from '../types';
 
 interface ResultsPanelProps {
@@ -65,15 +65,15 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({ analysis, isLoading,
   }
 
   // If structured fields are empty and analysis.raw exists, show the raw text
-  const isStructured = analysis.classifications?.length || analysis.keyFactors?.length || analysis.recommendedActions?.length || (analysis.precedentCases && analysis.precedentCases.length);
+  const isStructured = analysis.التكييف_القانوني?.length || analysis.النصوص_القانونية_ذات_الصلة?.length || analysis.الوقائع_الجوهرية?.length || analysis.العناصر_المادية_والمعنوية?.length || analysis.الدفاعات_الممكنة?.length || analysis.الإجراءات_المقترحة?.length || analysis.سوابق_قضائية_مغربية_محتملة?.length;
   if (!isStructured && analysis.raw) {
     return (
       <div className="bg-white rounded-2xl shadow-2xl p-8 border border-blue-200">
         <div className="flex items-center gap-3 mb-6">
           <Scale className="w-6 h-6 text-blue-700" />
-          <h3 className="text-2xl font-bold text-blue-900 tracking-tight">Legal Analysis Results</h3>
+          <h3 className="text-2xl font-bold text-blue-900 tracking-tight">نتائج التحليل القانوني</h3>
         </div>
-        <div className="mb-3 text-blue-800 font-semibold text-lg">Full Legal Analysis</div>
+        <div className="mb-3 text-blue-800 font-semibold text-lg">النص الكامل</div>
         <div
           className="bg-gradient-to-br from-blue-50 to-white border border-blue-100 rounded-xl p-6 text-slate-900 whitespace-pre-line overflow-auto shadow-inner"
           style={{ maxHeight: 400, fontSize: '1.15rem', lineHeight: '2.1', direction: 'rtl', fontFamily: 'Segoe UI, Tahoma, Arial, sans-serif', letterSpacing: '0.01em' }}
@@ -91,10 +91,13 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({ analysis, isLoading,
         <Scale className="w-6 h-6 text-blue-700" />
         <h3 className="text-2xl font-bold text-blue-900 tracking-tight">نتائج التحليل القانوني</h3>
       </div>
-      <Section title="التكييفات القانونية" items={analysis.classifications || []} />
-      <Section title="العوامل الرئيسية" items={analysis.keyFactors || []} />
-      <Section title="الإجراءات الموصى بها" items={analysis.recommendedActions || []} />
-      <Section title="سوابق قضائية مشابهة" items={analysis.precedentCases || []} />
+      <Section title="التكييف القانوني" items={analysis.التكييف_القانوني || []} />
+      <Section title="النصوص القانونية ذات الصلة" items={analysis.النصوص_القانونية_ذات_الصلة || []} />
+      <Section title="الوقائع الجوهرية" items={analysis.الوقائع_الجوهرية || []} />
+      <Section title="العناصر المادية والمعنوية" items={analysis.العناصر_المادية_والمعنوية || []} />
+      <Section title="الدفاعات الممكنة" items={analysis.الدفاعات_الممكنة || []} />
+      <Section title="الإجراءات المقترحة" items={analysis.الإجراءات_المقترحة || []} />
+      <Section title="سوابق قضائية مغربية محتملة" items={analysis.سوابق_قضائية_مغربية_محتملة || []} />
     </div>
   );
 };

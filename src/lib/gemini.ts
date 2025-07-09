@@ -10,20 +10,20 @@ const cleanJsonString = (text: string) => {
 
 export async function analyzeWithGemini(summary: string): Promise<any> {
   const result = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent', {
-    method: 'POST',
+      method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'X-goog-api-key': GEMINI_API_KEY
     },
-    body: JSON.stringify({
+      body: JSON.stringify({
       contents: [{
         parts: [{
           text: summary
         }]
       }]
-    })
-  });
-
+      })
+    });
+  
   const json = await result.json();
   const text = json.candidates?.[0]?.content?.parts?.[0]?.text || '';
   console.log('Gemini raw response:', text);
@@ -34,7 +34,7 @@ export async function analyzeWithGemini(summary: string): Promise<any> {
     parsed = JSON.parse(cleaned);
   } catch (e) {
     parsed = { raw: text };
-  }
+    }
   return {
     classifications: [],
     keyFactors: [],
@@ -42,4 +42,5 @@ export async function analyzeWithGemini(summary: string): Promise<any> {
     precedentCases: [],
     ...parsed
   };
-}
+  }
+  

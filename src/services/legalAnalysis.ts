@@ -2,17 +2,30 @@ import { analyzeWithGemini } from '../lib/gemini';
 
 export async function analyzeLegalCase(caseText: string) {
   const prompt = `
-You are a legal expert AI. Always answer in Modern Standard Arabic (formal legal language).
-Base your analysis and recommendations strictly on Moroccan law and legal codes. Do not reference any non-Moroccan laws or international principles.
-Respond ONLY in valid JSON with the following keys:
-- classifications: array of strings
-- keyFactors: array of strings
-- recommendedActions: array of strings
-- precedentCases: array of strings
+أنت مساعد قانوني آلي متمرس، تخاطب قاضيًا مغربيًا، وتجيب حصريًا باللغة العربية الفصحى الرسمية المعتمدة في الوثائق القضائية.
 
-Analyze the following case and fill in each section appropriately. Do not include any text outside the JSON object.
+❗️ الزم بما يلي:
+- حلل القضية في ضوء القانون المغربي فقط (مدني، جنائي، إداري، تجاري، أسرة، إلخ حسب الوقائع)، ولا تشرع في أي مقارنة أو إحالة إلى قوانين دولية أو أجنبية.
+- استعن بالنصوص القانونية المغربية ذات الصلة. عند الإشارة إلى نص قانوني، اذكر اسمه ورقمه (مثلاً "قانون الالتزامات والعقود المغربي" أو "القانون الجنائي المغربي") وصياغة الفصل أو المادة إن أمكن.
+- استعمل لغة قانونية دقيقة وصارمة وخالية من العامية.
+- هيئ الإجابة في شكل JSON صارم مع المفاتيح التالية فقط:
 
-Case Details:
+{
+  "التكييف_القانوني": [ "..." ],
+  "النصوص_القانونية_ذات_الصلة": [ "..." ],
+  "الوقائع_الجوهرية": [ "..." ],
+  "العناصر_المادية_والمعنوية": [ "..." ],
+  "الدفاعات_الممكنة": [ "..." ],
+  "الإجراءات_المقترحة": [ "..." ],
+  "سوابق_قضائية_مغربية_محتملة": [ "..." ]
+}
+
+❗️ إذا لم تجد معلومة مباشرة في أحد الأقسام، استنتج أو لخص أو استخرج أقرب المعطيات القانونية الممكنة من وقائع القضية، ولا تترك أي قسم فارغًا ولا تكتب "لا ينطبق".
+❗️ لا تكتب أي مقدمة أو خاتمة خارج JSON. 
+❗️ لا تشرح خارج القيم المحددة في المفاتيح.
+
+✅ حلل النص التالي:
+
 ${caseText}
   `;
   return await analyzeWithGemini(prompt);
