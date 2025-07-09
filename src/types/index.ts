@@ -14,18 +14,13 @@ export interface Classification {
 }
 
 export interface LegalAnalysis {
-  classifications: Classification[];
-  keyFactors: string[];
-  recommendedActions: string[];
-  precedentCases?: string[];
-  التكييف_القانوني?: string[];
-  النصوص_القانونية_ذات_الصلة?: string[];
-  الوقائع_الجوهرية?: string[];
-  العناصر_المادية_والمعنوية?: string[];
-  الدفاعات_الممكنة?: string[];
-  الإجراءات_المقترحة?: string[];
-  سوابق_قضائية_مغربية_محتملة?: string[];
   نوع_القضية: string;
-  
+  التكييف_القانوني: string[];
+  النصوص_القانونية_ذات_الصلة: string[];
+  الوقائع_الجوهرية: string[];
+  العناصر_المادية_والمعنوية: string[];
+  الدفاعات_الممكنة: string[];
+  الإجراءات_المقترحة: string[];
+  سوابق_قضائية_مغربية_محتملة: string[];
   raw?: string;
 }

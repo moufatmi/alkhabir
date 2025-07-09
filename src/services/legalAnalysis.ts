@@ -11,6 +11,7 @@ export async function analyzeLegalCase(caseText: string) {
 - هيئ الإجابة في شكل JSON صارم مع المفاتيح التالية فقط:
 
 {
+  "نوع_القضية": "...",
   "التكييف_القانوني": [ "..." ],
   "النصوص_القانونية_ذات_الصلة": [ "..." ],
   "الوقائع_الجوهرية": [ "..." ],
@@ -36,6 +37,16 @@ export async function askLegalQuestion(question: string) {
 أنت مستشار قانوني محترف. أجب عن السؤال التالي بصيغة قانونية رسمية، مع الاستناد إلى القانون المغربي فقط، وبالعربية الفصحى:
 السؤال:
 ${question}
+  `;
+  return await analyzeWithGemini(prompt);
+}
+
+export async function suggestClarifyingQuestions(caseText: string) {
+  const prompt = `
+أنت مستشار قانوني ذكي. بناءً على المعطيات التالية، اقترح 5 إلى 7 أسئلة قانونية دقيقة باللغة العربية الفصحى تساعد القاضي على توضيح القضية أو جمع معطيات إضافية. لا تكرر الوقائع، فقط اسأل أسئلة تُضيء الجوانب الغامضة أو الناقصة.
+
+المعطيات:
+${caseText}
   `;
   return await analyzeWithGemini(prompt);
 }

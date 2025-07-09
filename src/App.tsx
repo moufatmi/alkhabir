@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { CaseSummaryInput } from './components/CaseSummaryInput';
 import { ResultsPanel } from './components/ResultsPanel';
-import { analyzeLegalCase, askLegalQuestion } from './services/legalAnalysis';
+import { analyzeLegalCase, askLegalQuestion, suggestClarifyingQuestions } from './services/legalAnalysis';
 import LegalQuestionPage from './components/LegalQuestionPage';
 
 type HistoryItem = {
@@ -19,6 +19,8 @@ function App() {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [showLegalQuestion, setShowLegalQuestion] = useState(false);
+  const [clarifyingQuestions, setClarifyingQuestions] = useState<string[]>([]);
+  const [isQuestionsLoading, setIsQuestionsLoading] = useState(false);
 
   // Load history from localStorage on mount
   useEffect(() => {
@@ -30,6 +32,62 @@ function App() {
   useEffect(() => {
     localStorage.setItem('caseHistory', JSON.stringify(history));
   }, [history]);
+
+  useEffect(() => {
+    let ignore = false;
+    if (!caseText.trim()) {
+      setClarifyingQuestions([]);
+      return;
+    }
+    setIsQuestionsLoading(true);
+    suggestClarifyingQuestions(caseText)
+      .then((result) => {
+        console.log('Clarifying questions result:', result);
+        if (result && typeof result === 'object') {
+          Object.entries(result).forEach(([k, v]) => {
+            console.log('Key:', k, 'Value:', v);
+          });
+        }
+        if (ignore) return;
+        let questions: string[] = [];
+        if (Array.isArray(result)) {
+          questions = result;
+        } else if (typeof result === 'string') {
+          questions = result.split(/\n|\r/).filter((q) => q.trim().length > 0);
+        } else if (result && typeof result === 'object') {
+          // Try to find the first array property
+          const arrProp = Object.values(result).find((v) => Array.isArray(v));
+          if (arrProp) {
+            questions = arrProp as string[];
+          } else if (result.raw && typeof result.raw === 'string') {
+            // Extract lines that look like numbered or asterisked questions
+            questions = result.raw
+              .split(/\n|\r/)
+              .map((line: string) => line.trim())
+              .filter((line: string) => /^\d+\./.test(line) || /^\*\*/.test(line))
+              .map((line: string) => line.replace(/^\d+\.\s*|^\*\*\s*/g, ''));
+            // Fallback: if no questions found, show the whole raw as one question
+            if (questions.length === 0) {
+              questions = [result.raw.trim()];
+            }
+          } else {
+            // Try to find the first string property and split by lines
+            const strProp = Object.values(result).find((v) => typeof v === 'string');
+            if (strProp) {
+              questions = (strProp as string).split(/\n|\r/).filter((q) => q.trim().length > 0);
+            }
+          }
+        }
+        setClarifyingQuestions(questions);
+      })
+      .catch(() => {
+        if (!ignore) setClarifyingQuestions([]);
+      })
+      .finally(() => {
+        if (!ignore) setIsQuestionsLoading(false);
+      });
+    return () => { ignore = true; };
+  }, [caseText]);
 
   const handleAnalyzeCase = async () => {
     if (!caseText.trim()) {
@@ -162,6 +220,24 @@ function App() {
               value={caseText}
               onChange={setCaseText}
             />
+
+            {/* Clarifying Questions */}
+            {caseText.trim() && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-2">
+                <h4 className="text-md font-semibold text-blue-800 mb-2">أسئلة توضيحية مقترحة</h4>
+                {isQuestionsLoading ? (
+                  <div className="text-blue-600">جاري توليد الأسئلة...</div>
+                ) : clarifyingQuestions.length > 0 ? (
+                  <ul className="list-disc list-inside text-blue-900 space-y-1 pr-2">
+                    {clarifyingQuestions.map((q, idx) => (
+                      <li key={idx}>{q}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="text-slate-500">لا توجد أسئلة توضيحية حالياً.</div>
+                )}
+              </div>
+            )}
 
             {/* Action Buttons */}
             <div className="flex gap-3">
