@@ -4,7 +4,6 @@ import { analyzeLegalCase, askLegalQuestion, suggestClarifyingQuestions } from '
 import LegalQuestionPage from './components/LegalQuestionPage';
 import { analyzeLegalText } from './services/textAnalysis';
 import { transcribeAudio } from './services/speechToText';
-import { CaseManagement } from './services/caseManagement';
 import { ReportGenerator } from './services/reportGenerator';
 
 type HistoryItem = {
@@ -16,6 +15,7 @@ type HistoryItem = {
 
 function App() {
   const [caseText, setCaseText] = useState('');
+  const [caseDetails, setCaseDetails] = useState('');
   const [analysis, setAnalysis] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -25,8 +25,8 @@ function App() {
   const [clarifyingQuestions, setClarifyingQuestions] = useState<string[]>([]);
   const [clarifyingQuestionsRaw, setClarifyingQuestionsRaw] = useState('');
   const [isQuestionsLoading, setIsQuestionsLoading] = useState(false);
-  const [caseDetails, setCaseDetails] = useState('');
-  const [analysisResults, setAnalysisResults] = useState<string[]>([]);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [transcriptionResult, setTranscriptionResult] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Load history from localStorage on mount
@@ -139,52 +139,32 @@ function App() {
     setShowHistory(false);
   };
 
-  const handleAnalyzeText = async () => {
-    if (!caseDetails.trim()) {
-      alert('الرجاء إدخال تفاصيل القضية');
-      return;
-    }
-    try {
-      const results = await analyzeLegalText(caseDetails);
-      setAnalysisResults(results);
-    } catch (error) {
-      console.error('Error analyzing text:', error);
-      alert('حدث خطأ أثناء تحليل النص');
-    }
-  };
 
   const handleTranscribeAudio = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    console.log('handleTranscribeAudio called', event);
     const file = event.target.files?.[0];
     if (!file) {
       alert('الرجاء اختيار ملف صوتي');
       return;
     }
+
+    setIsTranscribing(true);
     try {
       const transcription = await transcribeAudio(file);
-      setCaseDetails(prevDetails => prevDetails + '\n' + transcription);
+      console.log('Received transcription:', transcription);
+      setTranscriptionResult(transcription);
+      setCaseDetails(prevDetails => prevDetails 
+        ? `${prevDetails}\n\n=== تحويل الصوت إلى نص ===\n${transcription}`
+        : transcription
+      );
     } catch (error) {
       console.error('Error transcribing audio:', error);
       alert('حدث خطأ أثناء تحويل الصوت إلى نص');
-    }
-  };
-
-  const generateCaseReport = () => {
-    if (!caseDetails.trim()) {
-      alert('الرجاء إدخال تفاصيل القضية');
-      return;
-    }
-    try {
-      const caseManager = new CaseManagement();
-      caseManager.addCase('case1');
-      caseManager.addNote('case1', caseDetails);
-
-      const reportGenerator = new ReportGenerator();
-      const report = reportGenerator.generateReport(caseManager.getCase('case1')!);
-      console.log('Generated Report:', report);
-      alert('تم إنشاء التقرير بنجاح');
-    } catch (error) {
-      console.error('Error generating report:', error);
-      alert('حدث خطأ أثناء إنشاء التقرير');
+    } finally {
+      setIsTranscribing(false);
+      if (event.target) {
+        event.target.value = '';
+      }
     }
   };
 
@@ -352,16 +332,29 @@ function App() {
               <input
                 type="file"
                 accept="audio/*"
-                onChange={handleTranscribeAudio}
+                onChange={e => {
+                  console.log('Input file changed', e);
+                  handleTranscribeAudio(e);
+                }}
                 ref={fileInputRef}
                 className="hidden"
               />
               <button
-                onClick={() => fileInputRef.current?.click()}
+                onClick={() => {
+                  console.log('Transcribe button clicked');
+                  fileInputRef.current?.click();
+                }}
                 className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium"
+                disabled={isTranscribing}
               >
-                تحويل الصوت إلى نص
+                {isTranscribing ? 'جاري التحويل...' : 'تحويل الصوت إلى نص'}
               </button>
+              {transcriptionResult && (
+                <div className="mt-4 p-3 bg-gray-50 border rounded text-right whitespace-pre-wrap text-slate-800" style={{maxHeight: '200px', overflowY: 'auto'}}>
+                  <strong>النص المحول:</strong>
+                  <div>{transcriptionResult}</div>
+                </div>
+              )}
             </div>
             {/* Report Generation Section */}
             <div className="bg-white rounded-lg shadow p-6">
@@ -375,7 +368,8 @@ function App() {
                   setIsLoading(true);
                   setError(null);
                   try {
-                    const reportUrl = await ReportGenerator.generateReport(analysis);
+                    const reportGenerator = new ReportGenerator();
+                    const reportUrl = await reportGenerator.generateReport(analysis);
                     window.open(reportUrl, '_blank');
                   } catch (err) {
                     setError('فشل توليد التقرير.');
