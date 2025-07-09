@@ -25,5 +25,7 @@ export interface LegalAnalysis {
   الدفاعات_الممكنة?: string[];
   الإجراءات_المقترحة?: string[];
   سوابق_قضائية_مغربية_محتملة?: string[];
+  نوع_القضية: string;
+  
   raw?: string;
 }

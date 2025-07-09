@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { CaseSummaryInput } from './components/CaseSummaryInput';
 import { ResultsPanel } from './components/ResultsPanel';
-import { analyzeLegalCase } from './services/legalAnalysis';
+import { analyzeLegalCase, askLegalQuestion } from './services/legalAnalysis';
+import LegalQuestionPage from './components/LegalQuestionPage';
 
 type HistoryItem = {
   id: number;
@@ -17,6 +18,7 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [showLegalQuestion, setShowLegalQuestion] = useState(false);
 
   // Load history from localStorage on mount
   useEffect(() => {
@@ -68,6 +70,22 @@ function App() {
     setShowHistory(false);
   };
 
+  if (showLegalQuestion) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <button
+            onClick={() => setShowLegalQuestion(false)}
+            className="mb-6 px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-lg font-medium"
+          >
+            ⬅ العودة للتحليل الرئيسي
+          </button>
+          <LegalQuestionPage askLegalQuestion={askLegalQuestion} />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       {/* Header */}
@@ -79,8 +97,8 @@ function App() {
                 {/* Logo icon here if needed */}
               </div>
               <div>
-                <h1 className="text-xl font-bold text-slate-800">LegalAssist Pro</h1>
-                <p className="text-sm text-slate-600">AI-Powered Legal Analysis for Judges</p>
+                <h1 className="text-xl font-bold text-slate-800">Alkhabir | الخبير</h1>
+                <p className="text-sm text-slate-600">المحلل المساعد الذكي للقاضي و القانوني</p>
               </div>
             </div>
             <div className="flex items-center gap-2 text-slate-600">
@@ -93,6 +111,13 @@ function App() {
               className="ml-4 px-3 py-1 text-xs bg-slate-200 hover:bg-slate-300 rounded"
             >
               Show Previous Cases
+            </button>
+            {/* Legal Question Button */}
+            <button
+              onClick={() => setShowLegalQuestion(true)}
+              className="ml-2 px-3 py-1 text-xs bg-blue-200 hover:bg-blue-300 rounded text-blue-900 font-bold"
+            >
+              استشارة قانونية
             </button>
           </div>
         </div>

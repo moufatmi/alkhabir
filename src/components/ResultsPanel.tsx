@@ -1,9 +1,6 @@
 import React, { useRef } from 'react';
-import { Scale, AlertTriangle, Clock, Copy, Printer } from 'lucide-react';
-import { useReactToPrint } from 'react-to-print';
+import { Scale, AlertTriangle, Clock, Copy } from 'lucide-react';
 import { LegalAnalysis } from '../types';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 
 interface ResultsPanelProps {
   analysis: LegalAnalysis | null;
@@ -53,41 +50,21 @@ const AccordionSection = ({ title, items, color, open, onClick }: { title: strin
 
 export const ResultsPanel: React.FC<ResultsPanelProps> = ({ analysis, isLoading, error }) => {
   const [openIndex, setOpenIndex] = React.useState<number | null>(0);
-  const [forceOpenAll, setForceOpenAll] = React.useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
 
-  const handlePrint = useReactToPrint({
-    content: () => panelRef.current,
-    documentTitle: 'Legal Analysis',
-  });
-
-  const handleDownloadPDF = async () => {
-    setForceOpenAll(true);
-    setTimeout(async () => {
-      if (!panelRef.current) return;
-      // Hide buttons for PDF snapshot
-      const buttons = panelRef.current.querySelectorAll('button');
-      buttons.forEach(btn => (btn as HTMLElement).style.display = 'none');
-      // Wait for UI to update
-      await new Promise(res => setTimeout(res, 200));
-      // Capture panel as image
-      const canvas = await html2canvas(panelRef.current, { scale: 2 });
-      const imgData = canvas.toDataURL('image/png');
-      // Restore buttons
-      buttons.forEach(btn => (btn as HTMLElement).style.display = '');
-      setForceOpenAll(false);
-      // Create PDF
-      const pdf = new jsPDF({ orientation: 'p', unit: 'pt', format: 'a4' });
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      // Calculate image dimensions to fit page
-      const imgProps = { width: canvas.width, height: canvas.height };
-      const ratio = Math.min(pageWidth / imgProps.width, (pageHeight - 60) / imgProps.height);
-      const imgWidth = imgProps.width * ratio;
-      const imgHeight = imgProps.height * ratio;
-      pdf.addImage(imgData, 'PNG', (pageWidth - imgWidth) / 2, 30, imgWidth, imgHeight);
-      pdf.save('legal-analysis.pdf');
-    }, 800);
+  // Copy all analysis as formatted text
+  const handleCopy = () => {
+    let text = '';
+    sections.forEach(({ key, label }) => {
+      const items = (analysis as any)[key] as string[];
+      if (items && items.length > 0) {
+        text += `\n${label}:\n`;
+        items.forEach(item => {
+          text += `- ${item}\n`;
+        });
+      }
+    });
+    navigator.clipboard.writeText(text.trim());
   };
 
   if (isLoading) {
@@ -156,21 +133,6 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({ analysis, isLoading,
     );
   }
 
-  // Copy all analysis as formatted text
-  const handleCopy = () => {
-    let text = '';
-    sections.forEach(({ key, label }) => {
-      const items = (analysis as any)[key] as string[];
-      if (items && items.length > 0) {
-        text += `\n${label}:\n`;
-        items.forEach(item => {
-          text += `- ${item}\n`;
-        });
-      }
-    });
-    navigator.clipboard.writeText(text.trim());
-  };
-
   return (
     <div className="bg-white rounded-2xl shadow-2xl p-8 border border-blue-200" dir="rtl" style={{ fontFamily: 'Segoe UI, Tahoma, Arial, sans-serif' }} ref={panelRef}>
       <div className="flex items-center gap-3 mb-6">
@@ -184,19 +146,6 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({ analysis, isLoading,
         >
           <Copy className="w-4 h-4" /> نسخ التحليل
         </button>
-        <button
-          onClick={handlePrint}
-          className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium text-sm shadow transition-all"
-        >
-          <Printer className="w-4 h-4" /> طباعة التحليل
-        </button>
-        <button
-          onClick={handleDownloadPDF}
-          className="flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-medium text-sm shadow transition-all"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-          تحميل التحليل PDF
-        </button>
       </div>
       <div>
         {sections.map((section, idx) => (
@@ -205,7 +154,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({ analysis, isLoading,
             title={section.label}
             items={(analysis as any)[section.key] || []}
             color={section.color}
-            open={forceOpenAll || openIndex === idx}
+            open={openIndex === idx}
             onClick={() => setOpenIndex(openIndex === idx ? null : idx)}
           />
         ))}

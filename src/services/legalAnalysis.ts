@@ -30,3 +30,13 @@ ${caseText}
   `;
   return await analyzeWithGemini(prompt);
 }
+
+export async function askLegalQuestion(question: string) {
+  const prompt = `
+أنت مستشار قانوني محترف. أجب عن السؤال التالي بصيغة قانونية رسمية، مع الاستناد إلى القانون المغربي فقط، وبالعربية الفصحى:
+السؤال:
+${question}
+  `;
+  return await analyzeWithGemini(prompt);
+}
+
