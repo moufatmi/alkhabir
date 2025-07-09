@@ -357,6 +357,9 @@ function App() {
             {/* Report Generation Section */}
             <div className="bg-white rounded-lg shadow p-6">
               <h2 className="text-xl font-bold mb-2 text-slate-800">توليد التقرير</h2>
+              <p className="text-sm text-slate-600 mb-4">
+                التقرير يحتوي على النص العربي المحول إلى الحروف اللاتينية للتوافق مع PDF
+              </p>
               <button
                 onClick={async () => {
                   if (!analysis) {
@@ -366,18 +369,22 @@ function App() {
                   setIsLoading(true);
                   setError(null);
                   try {
+                    console.log('Generating report with analysis:', analysis);
                     const reportGenerator = new ReportGenerator();
                     const reportUrl = await reportGenerator.generateReport(analysis);
-                    window.open(reportUrl, '_blank');
+                    console.log('Report generated successfully:', reportUrl);
+                    // The download is handled automatically in the generateReport method
                   } catch (err) {
-                    setError('فشل توليد التقرير.');
+                    console.error('Report generation error:', err);
+                    setError('فشل توليد التقرير. يرجى المحاولة مرة أخرى أو الاتصال بالدعم التقني.');
                   } finally {
                     setIsLoading(false);
                   }
                 }}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium"
+                disabled={isLoading || !analysis}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg font-medium"
               >
-                توليد تقرير PDF
+                {isLoading ? 'جاري توليد التقرير...' : 'توليد تقرير PDF'}
               </button>
             </div>
           </div>
@@ -389,7 +396,7 @@ function App() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between">
             <p className="text-sm text-slate-600">
-              © 2025 LegalAssist Pro. AI-powered legal analysis for judicial professionals.
+              ©  منصة الخبير ، من تصميم الطالب الشغوف : مصعب فاطمي .
             </p>
             <div className="flex items-center gap-4 text-sm text-slate-500">
               <span>Secure</span>
