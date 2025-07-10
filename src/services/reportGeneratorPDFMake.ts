@@ -3,10 +3,10 @@ import pdfFonts from 'pdfmake/build/vfs_fonts';
 
 // You need to convert your NotoSansArabic-Regular.ttf to base64 and add it here
 // For demo, we'll use the built-in fonts, but you should replace with your own
-pdfMake.vfs = pdfFonts.pdfMake.vfs;
+(pdfMake as any).vfs = (pdfFonts as any).pdfMake.vfs;
 
 // Example: If you have the base64 string for NotoSansArabic-Regular.ttf
-// pdfMake.vfs['NotoSansArabic-Regular.ttf'] = 'AAEAAA...';
+// (pdfMake as any).vfs['NotoSansArabic-Regular.ttf'] = 'AAEAAA...';
 
 const arabicSections: Record<string, string> = {
   'نوع_القضية': 'نوع القضية',
@@ -78,6 +78,6 @@ export class PDFMakeReportGenerator {
     };
 
     // Generate and download PDF
-    pdfMake.createPdf(docDefinition).download(`تقرير_تحليل_قانوني_${new Date().toISOString().split('T')[0]}.pdf`);
+    pdfMake.createPdf(docDefinition as pdfMake.TDocumentDefinitions).download(`تقرير_تحليل_قانوني_${new Date().toISOString().split('T')[0]}.pdf`);
   }
 } 

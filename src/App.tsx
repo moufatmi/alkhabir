@@ -4,6 +4,8 @@ import { analyzeLegalCase, askLegalQuestion, suggestClarifyingQuestions } from '
 import LegalQuestionPage from './components/LegalQuestionPage';
 import { transcribeAudio } from './services/speechToText';
 import { PDFLibReportGenerator } from './services/reportGeneratorPDFLib';
+import './LoginPage.css';
+import { useNavigate } from 'react-router-dom';
 
 type HistoryItem = {
   id: number;
@@ -26,6 +28,7 @@ function App() {
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [transcriptionResult, setTranscriptionResult] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const navigate = useNavigate();
 
   // Load history from localStorage on mount
   useEffect(() => {
@@ -37,6 +40,12 @@ function App() {
   useEffect(() => {
     localStorage.setItem('caseHistory', JSON.stringify(history));
   }, [history]);
+
+  useEffect(() => {
+    if (localStorage.getItem('loggedIn') !== 'true') {
+      navigate('/login', { replace: true });
+    }
+  }, [navigate]);
 
   useEffect(() => {
     let ignore = false;
@@ -411,4 +420,66 @@ function App() {
   );
 }
 
-export default App;
+const LoginPage: React.FC = () => {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loggedIn, setLoggedIn] = useState(false);
+
+  const handleLogin = () => {
+    if (username === 'moussab' && password === 'moussab') {
+      setLoggedIn(true);
+    } else {
+      setError('اسم المستخدم أو كلمة المرور غير صحيحة');
+    }
+  };
+
+  if (loggedIn) {
+    return <App />;
+  }
+
+  return (
+    <div className="login-container">
+      <h1>تسجيل الدخول</h1>
+      <div className="login-form">
+        <input
+          type="text"
+          placeholder="اسم المستخدم"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+        />
+        <input
+          type="password"
+          placeholder="كلمة المرور"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+        <button onClick={handleLogin}>دخول</button>
+        {error && <p className="error-message">{error}</p>}
+      </div>
+      <p className="instructions">
+        إذا أردت الاستفادة من خدمات منصة الخبير، المرجو التواصل مع المطور مصعب فاطمي
+      </p>
+      <div className="social-buttons">
+        <a
+          href="https://wa.me/+212698570282"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="whatsapp-button"
+        >
+          واتساب
+        </a>
+        <a
+          href="https://www.instagram.com/moussabfatmi"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="instagram-button"
+        >
+          انستغرام
+        </a>
+      </div>
+    </div>
+  );
+};
+
+export default LoginPage;
