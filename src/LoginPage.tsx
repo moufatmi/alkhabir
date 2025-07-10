@@ -14,7 +14,8 @@ const LoginPage: React.FC = () => {
     }
   }, [navigate]);
 
-  const handleLogin = () => {
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
     if (username === 'moussab' && password === 'moussab') {
       localStorage.setItem('loggedIn', 'true');
       navigate('/app', { replace: true });
@@ -26,7 +27,7 @@ const LoginPage: React.FC = () => {
   return (
     <div className="login-container">
       <h1>تسجيل الدخول</h1>
-      <div className="login-form">
+      <form className="login-form" onSubmit={handleLogin}>
         <input
           type="text"
           placeholder="اسم المستخدم"
@@ -39,9 +40,9 @@ const LoginPage: React.FC = () => {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
-        <button onClick={handleLogin}>دخول</button>
+        <button type="submit">دخول</button>
         {error && <p className="error-message">{error}</p>}
-      </div>
+      </form>
       <p className="instructions">
         إذا أردت الاستفادة من خدمات منصة الخبير، المرجو التواصل مع المطور مصعب فاطمي
       </p>
