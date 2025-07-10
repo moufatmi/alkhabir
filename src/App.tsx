@@ -3,7 +3,7 @@ import { ResultsPanel } from './components/ResultsPanel';
 import { analyzeLegalCase, askLegalQuestion, suggestClarifyingQuestions } from './services/legalAnalysis';
 import LegalQuestionPage from './components/LegalQuestionPage';
 import { transcribeAudio } from './services/speechToText';
-import { ReportGenerator } from './services/reportGenerator';
+import { PDFLibReportGenerator } from './services/reportGeneratorPDFLib';
 
 type HistoryItem = {
   id: number;
@@ -370,10 +370,9 @@ function App() {
                   setError(null);
                   try {
                     console.log('Generating report with analysis:', analysis);
-                    const reportGenerator = new ReportGenerator();
+                    const reportGenerator = new PDFLibReportGenerator();
                     const reportUrl = await reportGenerator.generateReport(analysis);
                     console.log('Report generated successfully:', reportUrl);
-                    // The download is handled automatically in the generateReport method
                   } catch (err) {
                     console.error('Report generation error:', err);
                     setError('فشل توليد التقرير. يرجى المحاولة مرة أخرى أو الاتصال بالدعم التقني.');
