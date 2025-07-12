@@ -4,8 +4,6 @@ import { analyzeLegalCase, askLegalQuestion, suggestClarifyingQuestions } from '
 import LegalQuestionPage from './components/LegalQuestionPage';
 import { transcribeAudio } from './services/speechToText';
 import { PDFLibReportGenerator } from './services/reportGeneratorPDFLib';
-import './LoginPage.css';
-import { useNavigate } from 'react-router-dom';
 
 type HistoryItem = {
   id: number;
@@ -28,7 +26,11 @@ function App() {
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [transcriptionResult, setTranscriptionResult] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const navigate = useNavigate();
+  const [showFollowupBox, setShowFollowupBox] = useState(false);
+  const [followupQuestion, setFollowupQuestion] = useState('');
+  const [followupAnswer, setFollowupAnswer] = useState<string | null>(null);
+  const [isFollowupLoading, setIsFollowupLoading] = useState(false);
+  const [followupError, setFollowupError] = useState<string | null>(null);
 
   // Load history from localStorage on mount
   useEffect(() => {
@@ -40,12 +42,6 @@ function App() {
   useEffect(() => {
     localStorage.setItem('caseHistory', JSON.stringify(history));
   }, [history]);
-
-  useEffect(() => {
-    if (localStorage.getItem('loggedIn') !== 'true') {
-      navigate('/login', { replace: true });
-    }
-  }, [navigate]);
 
   useEffect(() => {
     let ignore = false;
@@ -171,6 +167,28 @@ function App() {
     }
   };
 
+  const handleSendFollowup = async () => {
+    if (!followupQuestion.trim()) return;
+    setIsFollowupLoading(true);
+    setFollowupError(null);
+    setFollowupAnswer(null);
+    try {
+      const res = await askLegalQuestion(followupQuestion);
+      // إذا كان الجواب كائن فيه raw أو نص مباشر
+      if (typeof res === 'string') {
+        setFollowupAnswer(res);
+      } else if (res && typeof res === 'object' && res.raw) {
+        setFollowupAnswer(res.raw);
+      } else {
+        setFollowupAnswer(JSON.stringify(res, null, 2));
+      }
+    } catch (e) {
+      setFollowupError('حدث خطأ أثناء إرسال السؤال.');
+    } finally {
+      setIsFollowupLoading(false);
+    }
+  };
+
   if (showLegalQuestion) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
@@ -269,6 +287,51 @@ function App() {
               isLoading={isLoading} 
               error={error} 
             />
+            {/* --- زر ومربع السؤال التكميلي --- */}
+            {analysis && !isLoading && !error && (
+              <div className="mt-6">
+                {!showFollowupBox ? (
+                  <button
+                    className="w-full py-3 bg-yellow-100 hover:bg-yellow-200 text-yellow-900 font-bold rounded-lg shadow transition"
+                    onClick={() => setShowFollowupBox(true)}
+                  >
+                    🧠 هل التحليل كافٍ؟ أضف سؤالًا
+                  </button>
+                ) : (
+                  <div className="bg-white border border-yellow-200 rounded-lg p-4 mt-2 space-y-3">
+                    <label className="block text-slate-700 mb-1 font-medium">اكتب سؤالك التكميلي المتعلق بنفس القضية:</label>
+                    <textarea
+                      className="w-full h-20 p-2 border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-yellow-400 text-right"
+                      placeholder="مثال: ما هو موقف القانون المغربي من الوقائع التالية..."
+                      value={followupQuestion}
+                      onChange={e => setFollowupQuestion(e.target.value)}
+                      disabled={isFollowupLoading}
+                      dir="rtl"
+                    />
+                    <div className="flex gap-2 justify-end">
+                      <button
+                        className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded font-medium"
+                        onClick={() => { setShowFollowupBox(false); setFollowupQuestion(''); setFollowupAnswer(null); setFollowupError(null); }}
+                        disabled={isFollowupLoading}
+                      >إلغاء</button>
+                      <button
+                        className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded font-bold disabled:bg-yellow-300"
+                        onClick={handleSendFollowup}
+                        disabled={isFollowupLoading || !followupQuestion.trim()}
+                      >{isFollowupLoading ? 'جاري الإرسال...' : 'إرسال السؤال'}</button>
+                    </div>
+                    {followupError && <div className="text-red-600 text-sm mt-1">{followupError}</div>}
+                  </div>
+                )}
+                {/* عرض الجواب التكميلي */}
+                {followupAnswer && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4 text-right whitespace-pre-line text-blue-900">
+                    <div className="font-bold mb-2 text-blue-800">الجواب القانوني التكميلي:</div>
+                    <div>{followupAnswer}</div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
           {/* Left Column - Input (now visually on the right) */}
           <div className="space-y-6 order-1 lg:order-2" dir="rtl">
@@ -420,66 +483,4 @@ function App() {
   );
 }
 
-const LoginPage: React.FC = () => {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loggedIn, setLoggedIn] = useState(false);
-
-  const handleLogin = () => {
-    if (username === 'moussab' && password === 'moussab') {
-      setLoggedIn(true);
-    } else {
-      setError('اسم المستخدم أو كلمة المرور غير صحيحة');
-    }
-  };
-
-  if (loggedIn) {
-    return <App />;
-  }
-
-  return (
-    <div className="login-container">
-      <h1>تسجيل الدخول</h1>
-      <div className="login-form">
-        <input
-          type="text"
-          placeholder="اسم المستخدم"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-        />
-        <input
-          type="password"
-          placeholder="كلمة المرور"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-        <button onClick={handleLogin}>دخول</button>
-        {error && <p className="error-message">{error}</p>}
-      </div>
-      <p className="instructions">
-        إذا أردت الاستفادة من خدمات منصة الخبير، المرجو التواصل مع المطور مصعب فاطمي
-      </p>
-      <div className="social-buttons">
-        <a
-          href="https://wa.me/+212698570282"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="whatsapp-button"
-        >
-          واتساب
-        </a>
-        <a
-          href="https://www.instagram.com/moussabfatmi"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="instagram-button"
-        >
-          انستغرام
-        </a>
-      </div>
-    </div>
-  );
-};
-
-export default LoginPage;
+export default App;
