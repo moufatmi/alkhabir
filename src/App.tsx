@@ -1,3 +1,6 @@
+import AuthForm from "./components/AuthForm";
+import { auth } from "./firebase";
+import { onAuthStateChanged, signOut, User } from "firebase/auth";
 import React, { useState, useEffect, useRef } from 'react';
 import { ResultsPanel } from './components/ResultsPanel';
 import { analyzeLegalCase, askLegalQuestion, suggestClarifyingQuestions } from './services/legalAnalysis';
@@ -17,6 +20,8 @@ type HistoryItem = {
 };
 
 function App() {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
   const [caseText, setCaseText] = useState('');
   const [analysis, setAnalysis] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -68,6 +73,14 @@ function App() {
     };
     
     checkAccess();
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      setUser(firebaseUser);
+      setLoading(false);
+    });
+    return () => unsubscribe();
   }, []);
 
   useEffect(() => {
@@ -244,6 +257,9 @@ function App() {
     setIsAdminUser(false);
     setShowSubscriptionModal(true);
   };
+
+  if (loading) return <div>جاري التحميل...</div>;
+  if (!user) return <AuthForm />;
 
   if (showLegalQuestion) {
     return (
