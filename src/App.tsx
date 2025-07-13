@@ -11,7 +11,7 @@ import PayPalSubscription from './components/PayPalSubscription';
 import { hasActiveSubscription, getSubscription, clearSubscription } from './services/paypalService';
 import AdminLogin from './components/AdminLogin';
 import { isAdmin, adminLogout, getCurrentAdmin } from './services/adminAuth';
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, Route } from "react-router-dom";
 import { useAuthState } from "react-firebase-hooks/auth";
 import Header from "./components/Header";
 import { useUserRole } from './hooks/useUserRole';
@@ -295,7 +295,7 @@ function App() {
               />
               <div>
                 <h1 className="text-xl font-bold text-slate-800 aref-ruqaa-bold">الخبير | Alkhabir</h1>
-                  <p className="text-sm text-slate-600 aref-ruqaa-regular">المساعد الذكي للقانوني و </p>
+                  <p className="text-sm text-slate-600 aref-ruqaa-regular">المساعد الذكي للقانوني  </p>
                 </div>
             </div>
             {/* Center: System Status */}
@@ -706,6 +706,138 @@ function App() {
         )}
       </div>
     </>
+  );
+}
+
+// ExamplePage for ad campaign
+export function ExamplePage() {
+  // Handler to show the subscribe message
+  function showSubscribeMsg(e: React.MouseEvent<HTMLButtonElement>) {
+    e.preventDefault();
+    alert('يجب عليك الاشتراك للوصول إلى هذه الميزة');
+  }
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50" dir="rtl">
+      <Header />
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Right Column - ResultsPanel (disabled) */}
+          <div className="order-2 lg:order-1">
+            <div className="bg-white rounded-lg shadow-lg p-6 border border-slate-200">
+              <h3 className="text-lg font-semibold text-slate-800 mb-4">نتيجة التحليل</h3>
+              <div className="text-slate-500">يجب عليك الاشتراك للوصول إلى نتيجة التحليل.</div>
+            </div>
+            {/* Followup question box (disabled) */}
+            <div className="mt-6">
+              <button
+                className="w-full py-3 bg-yellow-100 text-yellow-900 font-bold rounded-lg shadow cursor-not-allowed opacity-60"
+                disabled
+              >
+                🧠 هل التحليل كافٍ؟ أضف سؤالًا
+              </button>
+            </div>
+          </div>
+          {/* Left Column - Input (disabled) */}
+          <div className="space-y-6 order-1 lg:order-2" dir="rtl">
+            <div className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-xl font-bold mb-2 text-slate-800">ملخص القضية</h2>
+              <label className="block text-slate-700 mb-2">أدخل تفاصيل القضية، الوقائع، والأطراف المعنية</label>
+              <textarea
+                className="w-full h-32 p-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-right"
+                placeholder="يرجى وصف تفاصيل القضية، الأطراف المعنية، الوقائع الأساسية، وأي ظروف ذات صلة…"
+                disabled
+              />
+            </div>
+            {/* Clarifying Questions (static example) */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-2" dir="rtl">
+              <h4 className="text-md font-semibold text-blue-800 mb-2">أسئلة توضيحية مقترحة</h4>
+              <ul className="list-disc list-inside text-blue-900 space-y-1 pr-2">
+                <li>ما هي الوقائع الأساسية للقضية؟</li>
+                <li>من هم الأطراف المعنية؟</li>
+                <li>ما هي الأسئلة القانونية الرئيسية؟</li>
+              </ul>
+            </div>
+            {/* Action Buttons (disabled) */}
+            <div className="flex gap-3" dir="rtl">
+              <button
+                onClick={showSubscribeMsg}
+                className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-blue-800 text-white rounded-lg font-medium transition-all opacity-60 cursor-not-allowed"
+                disabled
+              >
+                حلل القضية
+              </button>
+              <button
+                onClick={showSubscribeMsg}
+                className="px-6 py-3 bg-slate-600 text-white rounded-lg font-medium transition-all opacity-60 cursor-not-allowed"
+                disabled
+              >
+                مسح الكل
+              </button>
+            </div>
+            {/* Quick Info */}
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4" dir="rtl">
+              <div className="flex items-start gap-3">
+                <div>
+                  <h4 className="text-sm font-medium text-amber-800 mb-1">إرشادات التحليل</h4>
+                  <ul className="text-sm text-amber-700 space-y-1">
+                    <li>• قدم وقائع القضية والظروف بتفصيل</li>
+                    <li>• اذكر الأطراف المعنية وأدوارهم</li>
+                    <li>• أضف أي تساؤلات أو إشكالات قانونية</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+            {/* Transcription Section (disabled) */}
+            <div className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-xl font-bold mb-2 text-slate-800">نسخ الصوت إلى نص</h2>
+              <input
+                type="file"
+                accept="audio/*"
+                disabled
+                className="hidden"
+              />
+              <button
+                onClick={showSubscribeMsg}
+                className="px-4 py-2 bg-purple-600 text-white rounded-lg font-medium opacity-60 cursor-not-allowed"
+                disabled
+              >
+                تحويل الصوت إلى نص
+              </button>
+            </div>
+            {/* Report Generation Section (disabled) */}
+            <div className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-xl font-bold mb-2 text-slate-800">توليد التقرير</h2>
+              <p className="text-sm text-slate-600 mb-4">
+                التقرير يحتوي على النص العربي المحول إلى الحروف اللاتينية للتوافق مع PDF
+              </p>
+              <button
+                onClick={showSubscribeMsg}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium opacity-60 cursor-not-allowed"
+                disabled
+              >
+                توليد تقرير PDF
+              </button>
+            </div>
+          </div>
+        </div>
+      </main>
+      <footer className="bg-white border-t border-slate-200 mt-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-slate-600">
+              © منصة الخبير، من تصميم الطالب الشغوف : مصعب فاطمي.
+            </p>
+            <div className="flex items-center gap-4 text-sm text-slate-500">
+              <span>Professional</span>
+              <span>•</span>
+              <span>Confidential</span>
+              <span>•</span>
+              <span>Secure</span>
+            </div>
+          </div>
+        </div>
+      </footer>
+    </div>
   );
 }
 

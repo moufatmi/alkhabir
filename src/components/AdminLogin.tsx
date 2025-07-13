@@ -35,6 +35,11 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess }) => {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full">
         <div className="text-center mb-8">
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+            <img src="/logo.svg" alt="Scales of Justice" style={{ width: 48, height: 48 }} />
+            <h1 style={{ fontSize: 24, fontWeight: 700, color: '#1e293b', fontFamily: 'Aref Ruqaa, serif' }}>الخبير | Alkhabir</h1>
+            <p style={{ fontSize: 14, color: '#475569', fontFamily: 'Aref Ruqaa, serif' }}>المساعد الذكي للقانوني</p>
+          </div>
           <h1 className="text-2xl font-bold text-slate-800 mb-2">تسجيل دخول المدير</h1>
           <p className="text-slate-600">الوصول الكامل لجميع الميزات</p>
         </div>
