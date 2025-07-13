@@ -11,6 +11,9 @@ import PayPalSubscription from './components/PayPalSubscription';
 import { hasActiveSubscription, getSubscription, clearSubscription } from './services/paypalService';
 import AdminLogin from './components/AdminLogin';
 import { isAdmin, adminLogout, getCurrentAdmin } from './services/adminAuth';
+import { Link, useNavigate } from "react-router-dom";
+import { useAuthState } from "react-firebase-hooks/auth";
+import Header from "./components/Header";
 
 type HistoryItem = {
   id: number;
@@ -45,6 +48,7 @@ function App() {
   const [subscriptionError, setSubscriptionError] = useState<string | null>(null);
   const [isAdminUser, setIsAdminUser] = useState(false);
   const [showAdminLogin, setShowAdminLogin] = useState(false);
+  const navigate = useNavigate();
 
   // Load history from localStorage on mount
   useEffect(() => {
@@ -278,6 +282,8 @@ function App() {
   }
 
   return (
+    <>
+      <Header />
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50" dir="rtl">
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-slate-200">
@@ -292,8 +298,8 @@ function App() {
               />
               <div>
                 <h1 className="text-xl font-bold text-slate-800 aref-ruqaa-bold">الخبير | Alkhabir</h1>
-                <p className="text-sm text-slate-600 aref-ruqaa-regular">المساعد الذكي للقانوني و </p>
-              </div>
+                  <p className="text-sm text-slate-600 aref-ruqaa-regular">المساعد الذكي للقانوني و </p>
+                </div>
             </div>
             {/* Center: System Status */}
             <div className="flex items-center gap-2 text-slate-600">
@@ -302,58 +308,58 @@ function App() {
             </div>
             {/* Left: Action Buttons */}
             <div className="flex items-center gap-2">
-              {isAdminUser && (
-                <>
-                  <button
-                    onClick={() => setShowLegalQuestion(true)}
-                    className="ml-2 px-3 py-1 text-xs bg-blue-200 hover:bg-blue-300 rounded text-blue-900 font-bold"
-                  >
-                    الأسئلة القانونية
-                  </button>
-                  <span className="px-2 py-1 text-xs bg-purple-200 text-purple-900 rounded font-bold">
-                    المدير
-                  </span>
-                  <button
-                    onClick={handleAdminLogout}
-                    className="px-3 py-1 text-xs bg-red-200 hover:bg-red-300 rounded text-red-900 font-bold"
-                  >
-                    تسجيل الخروج
-                  </button>
-                </>
-              )}
-              {isSubscribed && !isAdminUser && (
-                <>
-                  <button
-                    onClick={() => setShowLegalQuestion(true)}
-                    className="ml-2 px-3 py-1 text-xs bg-blue-200 hover:bg-blue-300 rounded text-blue-900 font-bold"
-                  >
-                    الأسئلة القانونية
-                  </button>
-                  <button
-                    onClick={handleLogout}
-                    className="px-3 py-1 text-xs bg-red-200 hover:bg-red-300 rounded text-red-900 font-bold"
-                  >
-                    إلغاء الاشتراك
-                  </button>
-                </>
-              )}
-              {!isSubscribed && !isAdminUser && (
-                <>
-                  <button
-                    onClick={() => setShowSubscriptionModal(true)}
-                    className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium"
-                  >
-                    اشترك الآن
-                  </button>
-                  <button
-                    onClick={() => setShowAdminLogin(true)}
-                    className="px-3 py-1 text-xs bg-slate-200 hover:bg-slate-300 rounded text-slate-700 font-bold"
-                  >
-                    دخول المدير
-                  </button>
-                </>
-              )}
-            </div>
+                {isAdminUser && (
+                  <>
+                    <button
+                      onClick={() => setShowLegalQuestion(true)}
+                      className="ml-2 px-3 py-1 text-xs bg-blue-200 hover:bg-blue-300 rounded text-blue-900 font-bold"
+                    >
+                      الأسئلة القانونية
+                    </button>
+                    <span className="px-2 py-1 text-xs bg-purple-200 text-purple-900 rounded font-bold">
+                      المدير
+                    </span>
+                    <button
+                      onClick={handleAdminLogout}
+                      className="px-3 py-1 text-xs bg-red-200 hover:bg-red-300 rounded text-red-900 font-bold"
+                    >
+                      تسجيل الخروج
+                    </button>
+                  </>
+                )}
+                {isSubscribed && !isAdminUser && (
+                  <>
+              <button
+                onClick={() => setShowLegalQuestion(true)}
+                className="ml-2 px-3 py-1 text-xs bg-blue-200 hover:bg-blue-300 rounded text-blue-900 font-bold"
+              >
+                      الأسئلة القانونية
+                    </button>
+                    <button
+                      onClick={handleLogout}
+                      className="px-3 py-1 text-xs bg-red-200 hover:bg-red-300 rounded text-red-900 font-bold"
+                    >
+                      إلغاء الاشتراك
+                    </button>
+                  </>
+                )}
+                {!isSubscribed && !isAdminUser && (
+                  <>
+                    <button
+                      onClick={() => setShowSubscriptionModal(true)}
+                      className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium"
+                    >
+                      اشترك الآن
+                    </button>
+                    <button
+                      onClick={() => setShowAdminLogin(true)}
+                      className="px-3 py-1 text-xs bg-slate-200 hover:bg-slate-300 rounded text-slate-700 font-bold"
+                    >
+                      دخول المدير
+              </button>
+                  </>
+                )}
+              </div>
           </div>
         </div>
       </header>
@@ -390,26 +396,26 @@ function App() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {!isSubscribed && !isAdminUser ? (
-          <div className="max-w-4xl mx-auto text-center py-12">
-            <div className="bg-white rounded-lg shadow-lg p-8">
-              <h2 className="text-3xl font-bold text-slate-800 mb-4">مرحباً بك في الخبير</h2>
-              <p className="text-lg text-slate-600 mb-6">
-                منصة الخبير هي المساعد الذكي للقانوني . اشترك الآن للوصول إلى جميع الميزات.
-              </p>
-              <button
-                onClick={() => setShowSubscriptionModal(true)}
-                className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium text-lg"
-              >
-                اشترك الآن - 286 MAD/شهر
-              </button>
-              <div className="mt-6 text-sm text-slate-500">
-                الاشتراك قابل للإلغاء في أي وقت
+          {!isSubscribed && !isAdminUser ? (
+            <div className="max-w-4xl mx-auto text-center py-12">
+              <div className="bg-white rounded-lg shadow-lg p-8">
+                <h2 className="text-3xl font-bold text-slate-800 mb-4">مرحباً بك في الخبير</h2>
+                <p className="text-lg text-slate-600 mb-6">
+                  منصة الخبير هي المساعد الذكي للقانوني . اشترك الآن للوصول إلى جميع الميزات.
+                </p>
+                <button
+                  onClick={() => setShowSubscriptionModal(true)}
+                  className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium text-lg"
+                >
+                  اشترك الآن - 286 MAD/شهر
+                </button>
+                <div className="mt-6 text-sm text-slate-500">
+                  الاشتراك قابل للإلغاء في أي وقت
+                </div>
               </div>
             </div>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Right Column - Input (now first in DOM, but visually on the right) */}
           <div className="order-2 lg:order-1">
             <ResultsPanel 
@@ -590,7 +596,7 @@ function App() {
             </div>
           </div>
         </div>
-        )}
+          )}
       </main>
 
       {/* Footer */}
@@ -611,58 +617,59 @@ function App() {
         </div>
       </footer>
 
-      {/* Subscription Modal */}
-      {showSubscriptionModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-4 border-b border-slate-200">
-              <div className="flex justify-between items-center">
-                <h2 className="text-lg font-semibold text-slate-800">اشترك في الخبير</h2>
-                <button
-                  onClick={() => setShowSubscriptionModal(false)}
-                  className="text-slate-400 hover:text-slate-600"
-                >
-                  ✕
-                </button>
-              </div>
-            </div>
-            <div className="p-4">
-              <PayPalSubscription
-                onSubscriptionSuccess={handleSubscriptionSuccess}
-                onSubscriptionError={handleSubscriptionError}
-              />
-              {subscriptionError && (
-                <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded text-red-700 text-sm">
-                  {subscriptionError}
+        {/* Subscription Modal */}
+        {showSubscriptionModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-4 border-b border-slate-200">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-lg font-semibold text-slate-800">اشترك في الخبير</h2>
+                  <button
+                    onClick={() => setShowSubscriptionModal(false)}
+                    className="text-slate-400 hover:text-slate-600"
+                  >
+                    ✕
+                  </button>
                 </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Admin Login Modal */}
-      {showAdminLogin && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-md w-full">
-            <div className="p-4 border-b border-slate-200">
-              <div className="flex justify-between items-center">
-                <h2 className="text-lg font-semibold text-slate-800">دخول المدير</h2>
-                <button
-                  onClick={() => setShowAdminLogin(false)}
-                  className="text-slate-400 hover:text-slate-600"
-                >
-                  ✕
-                </button>
+    </div>
+              <div className="p-4">
+                <PayPalSubscription
+                  onSubscriptionSuccess={handleSubscriptionSuccess}
+                  onSubscriptionError={handleSubscriptionError}
+                />
+                {subscriptionError && (
+                  <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded text-red-700 text-sm">
+                    {subscriptionError}
+                  </div>
+                )}
               </div>
             </div>
-            <div className="p-4">
-              <AdminLogin onLoginSuccess={handleAdminLoginSuccess} />
+      </div>
+        )}
+
+        {/* Admin Login Modal */}
+        {showAdminLogin && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg max-w-md w-full">
+              <div className="p-4 border-b border-slate-200">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-lg font-semibold text-slate-800">دخول المدير</h2>
+                  <button
+                    onClick={() => setShowAdminLogin(false)}
+                    className="text-slate-400 hover:text-slate-600"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+              <div className="p-4">
+                <AdminLogin onLoginSuccess={handleAdminLoginSuccess} />
+              </div>
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    </>
   );
 }
 

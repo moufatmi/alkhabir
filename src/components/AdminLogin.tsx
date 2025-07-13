@@ -6,7 +6,7 @@ interface AdminLoginProps {
 }
 
 const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess }) => {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -15,16 +15,17 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess }) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
-
     try {
-      const success = adminLogin(username, password);
-      if (success) {
-        onLoginSuccess();
-      } else {
+      await adminLogin(email, password);
+      onLoginSuccess();
+    } catch (err: any) {
+      if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
         setError('اسم المستخدم أو كلمة المرور غير صحيحة');
+      } else if (err.message === 'not_admin') {
+        setError('هذا الحساب ليس حساب مدير.');
+      } else {
+        setError('حدث خطأ أثناء تسجيل الدخول');
       }
-    } catch (err) {
-      setError('حدث خطأ أثناء تسجيل الدخول');
     } finally {
       setIsLoading(false);
     }
@@ -37,22 +38,20 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess }) => {
           <h1 className="text-2xl font-bold text-slate-800 mb-2">تسجيل دخول المدير</h1>
           <p className="text-slate-600">الوصول الكامل لجميع الميزات</p>
         </div>
-
         <form onSubmit={handleLogin} className="space-y-6">
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
-              اسم المستخدم
+              البريد الإلكتروني
             </label>
             <input
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-              placeholder="أدخل اسم المستخدم"
+              placeholder="أدخل البريد الإلكتروني"
               required
             />
           </div>
-
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
               كلمة المرور
@@ -66,13 +65,11 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess }) => {
               required
             />
           </div>
-
           {error && (
             <div className="p-3 bg-red-50 border border-red-200 rounded text-red-700 text-sm">
               {error}
             </div>
           )}
-
           <button
             type="submit"
             disabled={isLoading}
@@ -81,7 +78,6 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess }) => {
             {isLoading ? 'جاري تسجيل الدخول...' : 'تسجيل الدخول'}
           </button>
         </form>
-
         <div className="mt-6 text-center">
           <p className="text-xs text-slate-500">
             هذا الوصول مخصص للمدير فقط

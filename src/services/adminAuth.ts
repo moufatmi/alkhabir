@@ -1,3 +1,7 @@
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth, db } from '../firebase';
+import { doc, getDoc } from 'firebase/firestore';
+
 // Admin Authentication Service
 export interface AdminUser {
   username: string;
@@ -23,16 +27,17 @@ export const isAdmin = (): boolean => {
 };
 
 // Admin login
-export const adminLogin = (username: string, password: string): boolean => {
-  if (username === ADMIN_CREDENTIALS.username && password === ADMIN_CREDENTIALS.password) {
-    const adminUser: AdminUser = {
-      username: username,
-      isAdmin: true
-    };
-    localStorage.setItem('adminUser', JSON.stringify(adminUser));
+export const adminLogin = async (email: string, password: string) => {
+  // Sign in with Firebase Auth
+  const userCredential = await signInWithEmailAndPassword(auth, email, password);
+  const user = userCredential.user;
+  // Check Firestore for admin role
+  const userDoc = await getDoc(doc(db, 'users', user.uid));
+  if (userDoc.exists() && userDoc.data().role === 'admin') {
     return true;
   }
-  return false;
+  // Not admin
+  throw new Error('not_admin');
 };
 
 // Admin logout

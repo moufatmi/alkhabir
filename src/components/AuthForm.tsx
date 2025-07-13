@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import "./AuthForm.css";
 import { auth } from "../firebase";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
+import { db } from "../firebase";
+import { doc, setDoc } from "firebase/firestore";
 
 const AuthForm: React.FC = () => {
   const [email, setEmail] = useState("");
@@ -16,7 +18,11 @@ const AuthForm: React.FC = () => {
       if (isLogin) {
         await signInWithEmailAndPassword(auth, email, password);
       } else {
-        await createUserWithEmailAndPassword(auth, email, password);
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        await setDoc(doc(db, "users", userCredential.user.uid), {
+          email,
+          role: "client"
+        });
       }
     } catch (err: any) {
       setError(err.message);
