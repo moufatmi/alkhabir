@@ -19,7 +19,7 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
   {
     id: 'P-5KC56405L5407803HNBZQTIY',
     name: 'Pro Monthly',
-    price: '400',
+    price: '286',
     currency: 'MAD',
     interval: 'monthly'
   }

@@ -276,7 +276,7 @@ function App() {
               />
               <div>
                 <h1 className="text-xl font-bold text-slate-800 aref-ruqaa-bold">الخبير | Alkhabir</h1>
-                <p className="text-sm text-slate-600 aref-ruqaa-regular">المساعد الذكي للقانوني و القاضي</p>
+                <p className="text-sm text-slate-600 aref-ruqaa-regular">المساعد الذكي للقانوني و </p>
               </div>
             </div>
             {/* Center: System Status */}
@@ -379,13 +379,13 @@ function App() {
             <div className="bg-white rounded-lg shadow-lg p-8">
               <h2 className="text-3xl font-bold text-slate-800 mb-4">مرحباً بك في الخبير</h2>
               <p className="text-lg text-slate-600 mb-6">
-                منصة الخبير هي المساعد الذكي للقانوني والقاضي. اشترك الآن للوصول إلى جميع الميزات.
+                منصة الخبير هي المساعد الذكي للقانوني . اشترك الآن للوصول إلى جميع الميزات.
               </p>
               <button
                 onClick={() => setShowSubscriptionModal(true)}
                 className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium text-lg"
               >
-                اشترك الآن - 400 MAD/شهر
+                اشترك الآن - 286 MAD/شهر
               </button>
               <div className="mt-6 text-sm text-slate-500">
                 الاشتراك قابل للإلغاء في أي وقت
