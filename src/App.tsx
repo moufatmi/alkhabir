@@ -618,7 +618,7 @@ function App() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between">
             <p className="text-sm text-slate-600">
-              ©  منصة الخبير ، من تصميم الطالب الشغوف : مصعب فاطمي .
+                منصة الخبير ، من تصميم الطالب الشغوف : مصعب فاطمي .
             </p>
             <div className="flex items-center gap-4 text-sm text-slate-500">
               <span>Secure</span>
