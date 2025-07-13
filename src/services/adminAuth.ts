@@ -1,6 +1,6 @@
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth, db } from '../firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 
 // Admin Authentication Service
 export interface AdminUser {
@@ -54,5 +54,17 @@ export const getCurrentAdmin = (): AdminUser | null => {
     return JSON.parse(adminData);
   } catch {
     return null;
+  }
+};
+
+// Utility: Set user role in Firestore by UID
+export const setUserRole = async (uid: string, role: 'admin' | 'client') => {
+  const userRef = doc(db, 'users', uid);
+  // If the document exists, update; otherwise, create
+  const userDoc = await getDoc(userRef);
+  if (userDoc.exists()) {
+    await updateDoc(userRef, { role });
+  } else {
+    await setDoc(userRef, { role });
   }
 }; 

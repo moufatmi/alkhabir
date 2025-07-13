@@ -16,8 +16,11 @@ export function useUserRole(user: User | null) {
     setLoading(true);
     getDoc(doc(db, "users", user.uid)).then((docSnap) => {
       if (docSnap.exists()) {
-        setRole(docSnap.data().role || "client");
+        const role = docSnap.data().role || "client";
+        console.log("Fetched role for user", user.uid, ":", role);
+        setRole(role);
       } else {
+        console.log("No Firestore doc for user", user.uid, "- defaulting to client");
         setRole("client");
       }
       setLoading(false);

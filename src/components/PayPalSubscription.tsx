@@ -70,7 +70,7 @@ const PayPalSubscription: React.FC<PayPalSubscriptionProps> = ({
   return (
     <div className="bg-white rounded-lg shadow-lg p-6 max-w-md mx-auto">
       <div className="text-center mb-6">
-        <h2 className="text-2xl font-bold text-slate-800 mb-2">اشترك في الخبير</h2>
+        <h2 className="text-2xl font-bold text-slate-800 mb-2">اشترك في منصة الخبير</h2>
         <p className="text-slate-600">احصل على وصول كامل لجميع الميزات</p>
       </div>
       

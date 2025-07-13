@@ -14,6 +14,7 @@ import { isAdmin, adminLogout, getCurrentAdmin } from './services/adminAuth';
 import { Link, useNavigate } from "react-router-dom";
 import { useAuthState } from "react-firebase-hooks/auth";
 import Header from "./components/Header";
+import { useUserRole } from './hooks/useUserRole';
 
 type HistoryItem = {
   id: number;
@@ -49,6 +50,7 @@ function App() {
   const [isAdminUser, setIsAdminUser] = useState(false);
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const navigate = useNavigate();
+  const { role, loading: loadingRole } = useUserRole(user);
 
   // Load history from localStorage on mount
   useEffect(() => {
@@ -63,21 +65,16 @@ function App() {
 
   // Check subscription and admin status on mount
   useEffect(() => {
-    const checkAccess = () => {
+    if (loadingRole) return; // Wait for role to load
+    if (role === "admin") {
+      setIsSubscribed(true); // Treat admin as always subscribed
+      setShowSubscriptionModal(false);
+    } else {
       const subscribed = hasActiveSubscription();
-      const admin = isAdmin();
-      
       setIsSubscribed(subscribed);
-      setIsAdminUser(admin);
-      
-      // Show subscription modal only if not admin and not subscribed
-      if (!admin && !subscribed) {
-        setShowSubscriptionModal(true);
-      }
-    };
-    
-    checkAccess();
-  }, []);
+      if (!subscribed) setShowSubscriptionModal(true);
+    }
+  }, [role, loadingRole, user]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
@@ -351,12 +348,7 @@ function App() {
                     >
                       اشترك الآن
                     </button>
-                    <button
-                      onClick={() => setShowAdminLogin(true)}
-                      className="px-3 py-1 text-xs bg-slate-200 hover:bg-slate-300 rounded text-slate-700 font-bold"
-                    >
-                      دخول المدير
-              </button>
+                   
                   </>
                 )}
               </div>
@@ -399,7 +391,7 @@ function App() {
           {!isSubscribed && !isAdminUser ? (
             <div className="max-w-4xl mx-auto text-center py-12">
               <div className="bg-white rounded-lg shadow-lg p-8">
-                <h2 className="text-3xl font-bold text-slate-800 mb-4">مرحباً بك في الخبير</h2>
+                <h2 className="text-3xl font-bold text-slate-800 mb-4">مرحبا بك في منصة الخبير</h2>
                 <p className="text-lg text-slate-600 mb-6">
                   منصة الخبير هي المساعد الذكي للقانوني . اشترك الآن للوصول إلى جميع الميزات.
                 </p>
@@ -409,6 +401,28 @@ function App() {
                 >
                   اشترك الآن - 286 MAD/شهر
                 </button>
+                <div style={{ marginTop: 24, textAlign: 'center' }}>
+                  <p style={{ marginBottom: 12, color: '#1e293b', fontWeight: 'bold' }}>
+                    إذا واجهت صعوبة في الدفع عبر بايبال أو ترغب بالدفع عبر بطاقة بنكية أو وسيلة أخرى، يمكنك التواصل مباشرة مع المطور للتفاوض حول طريقة الدفع.
+                  </p>
+                  <a
+                    href="https://wa.me/212698570282"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: 'inline-block',
+                      background: '#25D366',
+                      color: '#fff',
+                      padding: '10px 24px',
+                      borderRadius: 8,
+                      fontWeight: 'bold',
+                      textDecoration: 'none',
+                      fontSize: 16
+                    }}
+                  >
+                    تواصل مع المطور عبر واتساب
+                  </a>
+                </div>
                 <div className="mt-6 text-sm text-slate-500">
                   الاشتراك قابل للإلغاء في أي وقت
                 </div>
@@ -623,7 +637,7 @@ function App() {
             <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
               <div className="p-4 border-b border-slate-200">
                 <div className="flex justify-between items-center">
-                  <h2 className="text-lg font-semibold text-slate-800">اشترك في الخبير</h2>
+                  <h2 className="text-lg font-semibold text-slate-800">اشترك في منصة الخبير</h2>
                   <button
                     onClick={() => setShowSubscriptionModal(false)}
                     className="text-slate-400 hover:text-slate-600"
@@ -637,6 +651,28 @@ function App() {
                   onSubscriptionSuccess={handleSubscriptionSuccess}
                   onSubscriptionError={handleSubscriptionError}
                 />
+                <div style={{ marginTop: 24, textAlign: 'center' }}>
+                  <p style={{ marginBottom: 12, color: '#1e293b', fontWeight: 'bold' }}>
+                    إذا واجهت صعوبة في الدفع عبر بايبال أو ترغب بالدفع عبر بطاقة بنكية أو وسيلة أخرى، يمكنك التواصل مباشرة مع المطور للتفاوض حول طريقة الدفع.
+                  </p>
+                  <a
+                    href="https://wa.me/212698570282"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: 'inline-block',
+                      background: '#25D366',
+                      color: '#fff',
+                      padding: '10px 24px',
+                      borderRadius: 8,
+                      fontWeight: 'bold',
+                      textDecoration: 'none',
+                      fontSize: 16
+                    }}
+                  >
+                    تواصل مع المطور عبر واتساب
+                  </a>
+                </div>
                 {subscriptionError && (
                   <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded text-red-700 text-sm">
                     {subscriptionError}
