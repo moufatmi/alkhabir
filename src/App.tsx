@@ -4,6 +4,10 @@ import { analyzeLegalCase, askLegalQuestion, suggestClarifyingQuestions } from '
 import LegalQuestionPage from './components/LegalQuestionPage';
 import { transcribeAudio } from './services/speechToText';
 import { PDFLibReportGenerator } from './services/reportGeneratorPDFLib';
+import PayPalSubscription from './components/PayPalSubscription';
+import { hasActiveSubscription, getSubscription, clearSubscription } from './services/paypalService';
+import AdminLogin from './components/AdminLogin';
+import { isAdmin, adminLogout, getCurrentAdmin } from './services/adminAuth';
 
 type HistoryItem = {
   id: number;
@@ -31,6 +35,11 @@ function App() {
   const [followupAnswer, setFollowupAnswer] = useState<string | null>(null);
   const [isFollowupLoading, setIsFollowupLoading] = useState(false);
   const [followupError, setFollowupError] = useState<string | null>(null);
+  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
+  const [subscriptionError, setSubscriptionError] = useState<string | null>(null);
+  const [isAdminUser, setIsAdminUser] = useState(false);
+  const [showAdminLogin, setShowAdminLogin] = useState(false);
 
   // Load history from localStorage on mount
   useEffect(() => {
@@ -42,6 +51,24 @@ function App() {
   useEffect(() => {
     localStorage.setItem('caseHistory', JSON.stringify(history));
   }, [history]);
+
+  // Check subscription and admin status on mount
+  useEffect(() => {
+    const checkAccess = () => {
+      const subscribed = hasActiveSubscription();
+      const admin = isAdmin();
+      
+      setIsSubscribed(subscribed);
+      setIsAdminUser(admin);
+      
+      // Show subscription modal only if not admin and not subscribed
+      if (!admin && !subscribed) {
+        setShowSubscriptionModal(true);
+      }
+    };
+    
+    checkAccess();
+  }, []);
 
   useEffect(() => {
     let ignore = false;
@@ -189,6 +216,35 @@ function App() {
     }
   };
 
+  const handleSubscriptionSuccess = (subscriptionId: string) => {
+    setIsSubscribed(true);
+    setShowSubscriptionModal(false);
+    setSubscriptionError(null);
+    alert('تم الاشتراك بنجاح! يمكنك الآن استخدام جميع الميزات.');
+  };
+
+  const handleSubscriptionError = (error: string) => {
+    setSubscriptionError(error);
+  };
+
+  const handleLogout = () => {
+    clearSubscription();
+    setIsSubscribed(false);
+    setShowSubscriptionModal(true);
+  };
+
+  const handleAdminLoginSuccess = () => {
+    setIsAdminUser(true);
+    setShowAdminLogin(false);
+    setShowSubscriptionModal(false);
+  };
+
+  const handleAdminLogout = () => {
+    adminLogout();
+    setIsAdminUser(false);
+    setShowSubscriptionModal(true);
+  };
+
   if (showLegalQuestion) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
@@ -230,18 +286,57 @@ function App() {
             </div>
             {/* Left: Action Buttons */}
             <div className="flex items-center gap-2">
-              {/* <button
-                onClick={() => setShowHistory(true)}
-                className="ml-4 px-3 py-1 text-xs bg-slate-200 hover:bg-slate-300 rounded"
-              >
-                عرض القضايا السابقة
-              </button> */}
-              <button
-                onClick={() => setShowLegalQuestion(true)}
-                className="ml-2 px-3 py-1 text-xs bg-blue-200 hover:bg-blue-300 rounded text-blue-900 font-bold"
-              >
-                استشارة قانونية
-              </button>
+              {isAdminUser && (
+                <>
+                  <button
+                    onClick={() => setShowLegalQuestion(true)}
+                    className="ml-2 px-3 py-1 text-xs bg-blue-200 hover:bg-blue-300 rounded text-blue-900 font-bold"
+                  >
+                    الأسئلة القانونية
+                  </button>
+                  <span className="px-2 py-1 text-xs bg-purple-200 text-purple-900 rounded font-bold">
+                    المدير
+                  </span>
+                  <button
+                    onClick={handleAdminLogout}
+                    className="px-3 py-1 text-xs bg-red-200 hover:bg-red-300 rounded text-red-900 font-bold"
+                  >
+                    تسجيل الخروج
+                  </button>
+                </>
+              )}
+              {isSubscribed && !isAdminUser && (
+                <>
+                  <button
+                    onClick={() => setShowLegalQuestion(true)}
+                    className="ml-2 px-3 py-1 text-xs bg-blue-200 hover:bg-blue-300 rounded text-blue-900 font-bold"
+                  >
+                    الأسئلة القانونية
+                  </button>
+                  <button
+                    onClick={handleLogout}
+                    className="px-3 py-1 text-xs bg-red-200 hover:bg-red-300 rounded text-red-900 font-bold"
+                  >
+                    إلغاء الاشتراك
+                  </button>
+                </>
+              )}
+              {!isSubscribed && !isAdminUser && (
+                <>
+                  <button
+                    onClick={() => setShowSubscriptionModal(true)}
+                    className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium"
+                  >
+                    اشترك الآن
+                  </button>
+                  <button
+                    onClick={() => setShowAdminLogin(true)}
+                    className="px-3 py-1 text-xs bg-slate-200 hover:bg-slate-300 rounded text-slate-700 font-bold"
+                  >
+                    دخول المدير
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -279,7 +374,26 @@ function App() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {!isSubscribed && !isAdminUser ? (
+          <div className="max-w-4xl mx-auto text-center py-12">
+            <div className="bg-white rounded-lg shadow-lg p-8">
+              <h2 className="text-3xl font-bold text-slate-800 mb-4">مرحباً بك في الخبير</h2>
+              <p className="text-lg text-slate-600 mb-6">
+                منصة الخبير هي المساعد الذكي للقانوني والقاضي. اشترك الآن للوصول إلى جميع الميزات.
+              </p>
+              <button
+                onClick={() => setShowSubscriptionModal(true)}
+                className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium text-lg"
+              >
+                اشترك الآن - 400 MAD/شهر
+              </button>
+              <div className="mt-6 text-sm text-slate-500">
+                الاشتراك قابل للإلغاء في أي وقت
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Right Column - Input (now first in DOM, but visually on the right) */}
           <div className="order-2 lg:order-1">
             <ResultsPanel 
@@ -460,6 +574,7 @@ function App() {
             </div>
           </div>
         </div>
+        )}
       </main>
 
       {/* Footer */}
@@ -479,6 +594,58 @@ function App() {
           </div>
         </div>
       </footer>
+
+      {/* Subscription Modal */}
+      {showSubscriptionModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-4 border-b border-slate-200">
+              <div className="flex justify-between items-center">
+                <h2 className="text-lg font-semibold text-slate-800">اشترك في الخبير</h2>
+                <button
+                  onClick={() => setShowSubscriptionModal(false)}
+                  className="text-slate-400 hover:text-slate-600"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+            <div className="p-4">
+              <PayPalSubscription
+                onSubscriptionSuccess={handleSubscriptionSuccess}
+                onSubscriptionError={handleSubscriptionError}
+              />
+              {subscriptionError && (
+                <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded text-red-700 text-sm">
+                  {subscriptionError}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Admin Login Modal */}
+      {showAdminLogin && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-md w-full">
+            <div className="p-4 border-b border-slate-200">
+              <div className="flex justify-between items-center">
+                <h2 className="text-lg font-semibold text-slate-800">دخول المدير</h2>
+                <button
+                  onClick={() => setShowAdminLogin(false)}
+                  className="text-slate-400 hover:text-slate-600"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+            <div className="p-4">
+              <AdminLogin onLoginSuccess={handleAdminLoginSuccess} />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
