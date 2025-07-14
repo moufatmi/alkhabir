@@ -348,7 +348,13 @@ function App() {
                     >
                       اشترك الآن
                     </button>
-                   
+                    <button
+                      onClick={() => window.location.href = '/example'}
+                      className="px-8 py-3 bg-gray-200 hover:bg-gray-300 text-blue-900 rounded-lg font-medium text-lg ml-4"
+                      style={{ marginRight: 12 }}
+                    >
+                      شاهد شكل المنصة
+                    </button>
                   </>
                 )}
               </div>
