@@ -23,6 +23,13 @@ type HistoryItem = {
   time: string;
 };
 
+const WHATSAPP_LINK = "https://wa.me/212698570282";
+const userTypes = [
+  { key: 'student', label: 'طالب', price: 50 },
+  { key: 'judge', label: 'قاضٍ متدرب', price: 150 },
+  { key: 'lawyer', label: 'محامٍ', price: 500 },
+];
+
 function App() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -51,6 +58,7 @@ function App() {
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const navigate = useNavigate();
   const { role, loading: loadingRole } = useUserRole(user);
+  const [selectedType, setSelectedType] = useState<'student' | 'judge' | 'lawyer'>('student');
 
   // Load history from localStorage on mount
   useEffect(() => {
@@ -397,38 +405,111 @@ function App() {
           {!isSubscribed && !isAdminUser ? (
             <div className="max-w-4xl mx-auto text-center py-12">
               <div className="bg-white rounded-lg shadow-lg p-8">
-                <h2 className="text-3xl font-bold text-slate-800 mb-4">مرحبا بك في منصة الخبير</h2>
+                <h2 className="text-3xl font-bold text-slate-800 mb-4">مرحباً بك في منصة الخبير</h2>
                 <p className="text-lg text-slate-600 mb-6">
                   منصة الخبير هي المساعد الذكي للقانوني . اشترك الآن للوصول إلى جميع الميزات.
                 </p>
-                <button
-                  onClick={() => setShowSubscriptionModal(true)}
-                  className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium text-lg"
-                >
-                  اشترك الآن - 286 MAD/شهر
-                </button>
-                <div style={{ marginTop: 24, textAlign: 'center' }}>
-                  <p style={{ marginBottom: 12, color: '#1e293b', fontWeight: 'bold' }}>
-                    إذا واجهت صعوبة في الدفع عبر بايبال أو ترغب بالدفع عبر بطاقة بنكية أو وسيلة أخرى، يمكنك التواصل مباشرة مع المطور للتفاوض حول طريقة الدفع.
-                  </p>
-                  <a
-                    href="https://wa.me/212698570282"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      display: 'inline-block',
-                      background: '#25D366',
-                      color: '#fff',
-                      padding: '10px 24px',
-                      borderRadius: 8,
-                      fontWeight: 'bold',
-                      textDecoration: 'none',
-                      fontSize: 16
-                    }}
-                  >
-                    تواصل مع المطور عبر واتساب
-                  </a>
+                <div style={{ display: 'flex', justifyContent: 'center', gap: 12, marginBottom: 24 }}>
+                  {userTypes.map(type => (
+                    <button
+                      key={type.key}
+                      onClick={() => setSelectedType(type.key as 'student' | 'judge' | 'lawyer')}
+                      style={{
+                        padding: '10px 20px',
+                        borderRadius: 8,
+                        border: selectedType === type.key ? '2px solid #2563eb' : '1px solid #ddd',
+                        background: selectedType === type.key ? '#2563eb' : '#f3f4f6',
+                        color: selectedType === type.key ? '#fff' : '#1e293b',
+                        fontWeight: 'bold',
+                        fontSize: 16,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {type.label} ({type.price} درهم)
+                    </button>
+                  ))}
                 </div>
+                {/* Payment/Contact logic */}
+                {selectedType === 'student' && (
+                  <div style={{ marginTop: 24, textAlign: 'center' }}>
+                    <p style={{ marginBottom: 12, color: '#1e293b', fontWeight: 'bold' }}>
+                      للاستفادة من اشتراك الطلبة (50 درهم شهرياً)، يرجى التواصل معنا عبر واتساب للتحقق من وضعك كطالب والتفاوض حول طريقة الدفع.
+                    </p>
+                    <a
+                      href={WHATSAPP_LINK}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        display: 'inline-block',
+                        background: '#25D366',
+                        color: '#fff',
+                        padding: '10px 24px',
+                        borderRadius: 8,
+                        fontWeight: 'bold',
+                        textDecoration: 'none',
+                        fontSize: 16
+                      }}
+                    >
+                      تواصل عبر واتساب
+                    </a>
+                  </div>
+                )}
+                {selectedType === 'judge' && (
+                  <div style={{ marginTop: 24, textAlign: 'center' }}>
+                    <p style={{ marginBottom: 12, color: '#1e293b', fontWeight: 'bold' }}>
+                      للاستفادة من اشتراك القضاة المتدربين (150 درهم شهرياً)، يرجى التواصل معنا عبر واتساب للتحقق من وضعك كقاضٍ متدرب والتفاوض حول طريقة الدفع.
+                    </p>
+                    <a
+                      href={WHATSAPP_LINK}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        display: 'inline-block',
+                        background: '#25D366',
+                        color: '#fff',
+                        padding: '10px 24px',
+                        borderRadius: 8,
+                        fontWeight: 'bold',
+                        textDecoration: 'none',
+                        fontSize: 16
+                      }}
+                    >
+                      تواصل عبر واتساب
+                    </a>
+                  </div>
+                )}
+                {selectedType === 'lawyer' && (
+                  <>
+                    <button
+                      onClick={() => setShowSubscriptionModal(true)}
+                      className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium text-lg"
+                    >
+                      اشترك الآن - 500 MAD/شهر
+                    </button>
+                    <div style={{ marginTop: 24, textAlign: 'center' }}>
+                      <p style={{ marginBottom: 12, color: '#1e293b', fontWeight: 'bold' }}>
+                        اشتراك المحامين (500 درهم شهرياً): يمكنك الدفع مباشرة عبر بايبال أو البطاقة البنكية، أو التواصل معنا عبر واتساب إذا واجهت صعوبة في الدفع.
+                      </p>
+                      <a
+                        href={WHATSAPP_LINK}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          display: 'inline-block',
+                          background: '#25D366',
+                          color: '#fff',
+                          padding: '10px 24px',
+                          borderRadius: 8,
+                          fontWeight: 'bold',
+                          textDecoration: 'none',
+                          fontSize: 16
+                        }}
+                      >
+                        تواصل عبر واتساب
+                      </a>
+                    </div>
+                  </>
+                )}
                 <div className="mt-6 text-sm text-slate-500">
                   الاشتراك قابل للإلغاء في أي وقت
                 </div>
