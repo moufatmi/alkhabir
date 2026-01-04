@@ -13,8 +13,8 @@ const AdminDashboard: React.FC = () => {
   const [promoteRole, setPromoteRole] = React.useState<'admin' | 'client'>("client");
   const [promoteMsg, setPromoteMsg] = React.useState("");
 
-  if (loadingAuth || loadingRole) return <div>جاري التحميل...</div>;
-  if (!user) return <Navigate to="/login" />;
+  if (loadingAuth || loadingRole) return <div> ! جاري التحميل...</div>;
+  if (!user) return <Navigate to="/login" />; 
   if (role !== "admin") return <Navigate to="/client" />;
 
   console.log("AdminDashboard: user", user, "role", role);
