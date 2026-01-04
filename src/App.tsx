@@ -1,4 +1,4 @@
-import AuthForm from "./components/AuthForm";
+// import AuthForm from "./components/AuthForm";
 import { auth } from "./firebase";
 import { onAuthStateChanged, signOut, User } from "firebase/auth";
 import React, { useState, useEffect, useRef } from 'react';
@@ -6,15 +6,16 @@ import { ResultsPanel } from './components/ResultsPanel';
 import { analyzeLegalCase, askLegalQuestion, suggestClarifyingQuestions } from './services/legalAnalysis';
 import LegalQuestionPage from './components/LegalQuestionPage';
 import { transcribeAudio } from './services/speechToText';
-import { PDFLibReportGenerator } from './services/reportGeneratorPDFLib';
+import { ImprovedReportGenerator } from './services/reportGeneratorImproved';
 import PayPalSubscription from './components/PayPalSubscription';
+import { ReportDiagnostics } from './components/ReportDiagnostics';
 import { hasActiveSubscription, getSubscription, clearSubscription } from './services/paypalService';
 import AdminLogin from './components/AdminLogin';
 import { isAdmin, adminLogout, getCurrentAdmin } from './services/adminAuth';
 import { Link, useNavigate, Route } from "react-router-dom";
-import { useAuthState } from "react-firebase-hooks/auth";
+// import { useAuthState } from "react-firebase-hooks/auth";
 import Header from "./components/Header";
-import { useUserRole } from './hooks/useUserRole';
+// import { useUserRole } from './hooks/useUserRole';
 
 type HistoryItem = {
   id: number;
@@ -31,7 +32,10 @@ const userTypes = [
 ];
 
 function App() {
-  const [user, setUser] = useState<User | null>(null);
+  /* TEMPORARY DISABLE AUTH START */
+  // const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<any>({ uid: 'guest', email: 'guest@example.com' }); // Mock user
+  /* TEMPORARY DISABLE AUTH END */
   const [loading, setLoading] = useState(true);
   const [caseText, setCaseText] = useState('');
   const [analysis, setAnalysis] = useState(null);
@@ -47,6 +51,7 @@ function App() {
   const [transcriptionResult, setTranscriptionResult] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showFollowupBox, setShowFollowupBox] = useState(false);
+  const [showDiagnostics, setShowDiagnostics] = useState(false);
   const [followupQuestion, setFollowupQuestion] = useState('');
   const [followupAnswer, setFollowupAnswer] = useState<string | null>(null);
   const [isFollowupLoading, setIsFollowupLoading] = useState(false);
@@ -57,7 +62,11 @@ function App() {
   const [isAdminUser, setIsAdminUser] = useState(false);
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const navigate = useNavigate();
-  const { role, loading: loadingRole } = useUserRole(user);
+  /* TEMPORARY DISABLE AUTH START */
+  // const { role, loading: loadingRole } = useUserRole(user);
+  const role = 'guest';
+  const loadingRole = false;
+  /* TEMPORARY DISABLE AUTH END */
   const [selectedType, setSelectedType] = useState<'student' | 'judge' | 'lawyer'>('student');
 
   // Load history from localStorage on mount
@@ -72,84 +81,97 @@ function App() {
   }, [history]);
 
   // Check subscription and admin status on mount
+  // Check subscription and admin status on mount
   useEffect(() => {
-    if (loadingRole) return; // Wait for role to load
-    if (role === "admin") {
-      setIsSubscribed(true); // Treat admin as always subscribed
-      setShowSubscriptionModal(false);
-    } else {
-      const subscribed = hasActiveSubscription();
-      setIsSubscribed(subscribed);
-      if (!subscribed) setShowSubscriptionModal(true);
-    }
+    /* TEMPORARY DISABLE AUTH START */
+    // if (loadingRole) return; // Wait for role to load
+    // if (role === "admin") {
+    //   setIsSubscribed(true); // Treat admin as always subscribed
+    //   setShowSubscriptionModal(false);
+    // } else {
+    //   const subscribed = hasActiveSubscription();
+    //   setIsSubscribed(subscribed);
+    //   if (!subscribed) setShowSubscriptionModal(true);
+    // }
+    setIsSubscribed(true); // Force subscribed for guest access
+    setShowSubscriptionModal(false);
+    /* TEMPORARY DISABLE AUTH END */
   }, [role, loadingRole, user]);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      setUser(firebaseUser);
-      setLoading(false);
-    });
-    return () => unsubscribe();
+    /* TEMPORARY DISABLE AUTH START */
+    // const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+    //   setUser(firebaseUser);
+    //   setLoading(false);
+    // });
+    // return () => unsubscribe();
+    setLoading(false); // Force loading to false
+    return () => { };
+    /* TEMPORARY DISABLE AUTH END */
   }, []);
 
   useEffect(() => {
-    let ignore = false;
-    if (!caseText.trim()) {
-      setClarifyingQuestions([]);
-      return;
-    }
-    setIsQuestionsLoading(true);
-    suggestClarifyingQuestions(caseText)
-      .then((result) => {
-        console.log('Clarifying questions result:', result);
-        if (result && typeof result === 'object') {
-          Object.entries(result).forEach(([k, v]) => {
-            console.log('Key:', k, 'Value:', v);
-          });
-        }
-        if (ignore) return;
-        let questions: string[] = [];
-        let rawText = '';
-        if (typeof result === 'string') {
-          questions = result.split(/\n|\r/).map((q: string) => q.trim()).filter((q: string) => q.length > 0);
-        } else if (result && typeof result === 'object' && result.raw && typeof result.raw === 'string') {
-          questions = result.raw.split(/\n|\r/).map((q: string) => q.trim()).filter((q: string) => q.length > 0);
-        } else if (result && typeof result === 'object') {
-          // Try to find the first array property
-          const arrProp = Object.values(result).find((v) => Array.isArray(v));
-          if (arrProp) {
-            questions = arrProp as string[];
-          } else if (result.raw && typeof result.raw === 'string') {
-            rawText = result.raw.trim();
-            // Extract lines that look like numbered or asterisked questions
-            questions = result.raw
-              .split(/\n|\r/)
-              .map((line: string) => line.trim())
-              .filter((line: string) => /^\d+\.\s*(\*\*)?/.test(line))
-              .map((line: string) => line.replace(/^\d+\.\s*(\*\*)?\s*/, '').replace(/\*\*$/, '').trim());
-            // Fallback: if no questions found, show the whole raw as one question
-            if (questions.length === 0) {
-              questions = [rawText];
-            }
-            console.log('Parsed clarifying questions:', questions);
-          } else {
-            // Try to find the first string property and split by lines
-            const strProp = Object.values(result).find((v) => typeof v === 'string');
-            if (strProp) {
-              questions = (strProp as string).split(/\n|\r/).filter((q) => q.trim().length > 0);
+    const timeoutId = setTimeout(() => {
+      let ignore = false;
+      if (!caseText.trim()) {
+        setClarifyingQuestions([]);
+        return;
+      }
+      setIsQuestionsLoading(true);
+      suggestClarifyingQuestions(caseText)
+        .then((result) => {
+          console.log('Clarifying questions result:', result);
+          if (result && typeof result === 'object') {
+            Object.entries(result).forEach(([k, v]) => {
+              console.log('Key:', k, 'Value:', v);
+            });
+          }
+          if (ignore) return;
+          let questions: string[] = [];
+          let rawText = '';
+          if (typeof result === 'string') {
+            questions = result.split(/\n|\r/).map((q: string) => q.trim()).filter((q: string) => q.length > 0);
+          } else if (result && typeof result === 'object' && result.raw && typeof result.raw === 'string') {
+            questions = result.raw.split(/\n|\r/).map((q: string) => q.trim()).filter((q: string) => q.length > 0);
+          } else if (result && typeof result === 'object') {
+            // Try to find the first array property
+            const arrProp = Object.values(result).find((v) => Array.isArray(v));
+            if (arrProp) {
+              questions = arrProp as string[];
+            } else if (result.raw && typeof result.raw === 'string') {
+              rawText = result.raw.trim();
+              // Extract lines that look like numbered or asterisked questions
+              questions = result.raw
+                .split(/\n|\r/)
+                .map((line: string) => line.trim())
+                .filter((line: string) => /^\d+\.\s*(\*\*)?/.test(line))
+                .map((line: string) => line.replace(/^\d+\.\s*(\*\*)?\s*/, '').replace(/\*\*$/, '').trim());
+              // Fallback: if no questions found, show the whole raw as one question
+              if (questions.length === 0) {
+                questions = [rawText];
+              }
+              console.log('Parsed clarifying questions:', questions);
+            } else {
+              // Try to find the first string property and split by lines
+              const strProp = Object.values(result).find((v) => typeof v === 'string');
+              if (strProp) {
+                questions = (strProp as string).split(/\n|\r/).filter((q) => q.trim().length > 0);
+              }
             }
           }
-        }
-        setClarifyingQuestions(questions);
-        setClarifyingQuestionsRaw(rawText);
-      })
-      .catch(() => {
-        if (!ignore) setClarifyingQuestions([]);
-      })
-      .finally(() => {
-        if (!ignore) setIsQuestionsLoading(false);
-      });
-    return () => { ignore = true; };
+          setClarifyingQuestions(questions);
+          setClarifyingQuestionsRaw(rawText);
+        })
+        .catch(() => {
+          if (!ignore) setClarifyingQuestions([]);
+        })
+        .finally(() => {
+          if (!ignore) setIsQuestionsLoading(false);
+        });
+      return () => { ignore = true; };
+    }, 1500); // Wait 1.5 seconds after typing stops
+
+    return () => clearTimeout(timeoutId);
   }, [caseText]);
 
   const handleAnalyzeCase = async () => {
@@ -268,7 +290,10 @@ function App() {
   };
 
   if (loading) return <div>جاري التحميل...</div>;
-  if (!user) return <AuthForm />;
+  if (loading) return <div>جاري التحميل...</div>;
+  /* TEMPORARY DISABLE AUTH START */
+  // if (!user) return <AuthForm />;
+  /* TEMPORARY DISABLE AUTH END */
 
   if (showLegalQuestion) {
     return (
@@ -289,30 +314,30 @@ function App() {
   return (
     <>
       <Header />
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50" dir="rtl">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-row-reverse items-center justify-between h-16">
-            {/* Right: Logo and Title */}
-            <div className="flex items-center gap-3">
-              <img 
-                src="/logo.svg" 
-                alt="Scales of Justice" 
-                className="w-12 h-12"
-              />
-              <div>
-                <h1 className="text-xl font-bold text-slate-800 aref-ruqaa-bold">الخبير | Alkhabir</h1>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50" dir="rtl">
+        {/* Header */}
+        <header className="bg-white shadow-sm border-b border-slate-200">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex flex-row-reverse items-center justify-between h-16">
+              {/* Right: Logo and Title */}
+              <div className="flex items-center gap-3">
+                <img
+                  src="/logo.svg"
+                  alt="Scales of Justice"
+                  className="w-12 h-12"
+                />
+                <div>
+                  <h1 className="text-xl font-bold text-slate-800 aref-ruqaa-bold">الخبير | Alkhabir</h1>
                   <p className="text-sm text-slate-600 aref-ruqaa-regular">المساعد الذكي للقانوني  </p>
                 </div>
-            </div>
-            {/* Center: System Status */}
-            <div className="flex items-center gap-2 text-slate-600">
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              <span className="text-sm aref-ruqaa-regular">النظام متصل</span>
-            </div>
-            {/* Left: Action Buttons */}
-            <div className="flex items-center gap-2">
+              </div>
+              {/* Center: System Status */}
+              <div className="flex items-center gap-2 text-slate-600">
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                <span className="text-sm aref-ruqaa-regular">النظام متصل</span>
+              </div>
+              {/* Left: Action Buttons */}
+              <div className="flex items-center gap-2">
                 {isAdminUser && (
                   <>
                     <button
@@ -334,10 +359,10 @@ function App() {
                 )}
                 {isSubscribed && !isAdminUser && (
                   <>
-              <button
-                onClick={() => setShowLegalQuestion(true)}
-                className="ml-2 px-3 py-1 text-xs bg-blue-200 hover:bg-blue-300 rounded text-blue-900 font-bold"
-              >
+                    <button
+                      onClick={() => setShowLegalQuestion(true)}
+                      className="ml-2 px-3 py-1 text-xs bg-blue-200 hover:bg-blue-300 rounded text-blue-900 font-bold"
+                    >
                       الأسئلة القانونية
                     </button>
                     <button
@@ -366,12 +391,12 @@ function App() {
                   </>
                 )}
               </div>
+            </div>
           </div>
-        </div>
-      </header>
+        </header>
 
-      {/* History Modal */}
-      {/* {showHistory && (
+        {/* History Modal */}
+        {/* {showHistory && (
         <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md max-h-[80vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
@@ -400,9 +425,13 @@ function App() {
         </div>
       )} */}
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {!isSubscribed && !isAdminUser ? (
+        {/* Main Content */}
+        {/* Main Content */}
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* TEMPORARY DISABLE AUTH START - Force show main content */}
+          {/* {!isSubscribed && !isAdminUser ? ( */}
+          {false ? (
+            /* TEMPORARY DISABLE AUTH END */
             <div className="max-w-4xl mx-auto text-center py-12">
               <div className="bg-white rounded-lg shadow-lg p-8">
                 <h2 className="text-3xl font-bold text-slate-800 mb-4">مرحباً بك في منصة الخبير</h2>
@@ -516,207 +545,232 @@ function App() {
               </div>
             </div>
           ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Right Column - Input (now first in DOM, but visually on the right) */}
-          <div className="order-2 lg:order-1">
-            <ResultsPanel 
-              analysis={analysis} 
-              isLoading={isLoading} 
-              error={error} 
-            />
-            {/* --- زر ومربع السؤال التكميلي --- */}
-            {analysis && !isLoading && !error && (
-              <div className="mt-6">
-                {!showFollowupBox ? (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Right Column - Input (now first in DOM, but visually on the right) */}
+              <div className="order-2 lg:order-1">
+                <ResultsPanel
+                  analysis={analysis}
+                  isLoading={isLoading}
+                  error={error}
+                />
+                {/* --- زر ومربع السؤال التكميلي --- */}
+                {analysis && !isLoading && !error && (
+                  <div className="mt-6">
+                    {!showFollowupBox ? (
+                      <button
+                        className="w-full py-3 bg-yellow-100 hover:bg-yellow-200 text-yellow-900 font-bold rounded-lg shadow transition"
+                        onClick={() => setShowFollowupBox(true)}
+                      >
+                        🧠 هل التحليل كافٍ؟ أضف سؤالًا
+                      </button>
+                    ) : (
+                      <div className="bg-white border border-yellow-200 rounded-lg p-4 mt-2 space-y-3">
+                        <label className="block text-slate-700 mb-1 font-medium">اكتب سؤالك التكميلي المتعلق بنفس القضية:</label>
+                        <textarea
+                          className="w-full h-20 p-2 border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-yellow-400 text-right"
+                          placeholder="مثال: ما هو موقف القانون المغربي من الوقائع التالية..."
+                          value={followupQuestion}
+                          onChange={e => setFollowupQuestion(e.target.value)}
+                          disabled={isFollowupLoading}
+                          dir="rtl"
+                        />
+                        <div className="flex gap-2 justify-end">
+                          <button
+                            className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded font-medium"
+                            onClick={() => { setShowFollowupBox(false); setFollowupQuestion(''); setFollowupAnswer(null); setFollowupError(null); }}
+                            disabled={isFollowupLoading}
+                          >إلغاء</button>
+                          <button
+                            className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded font-bold disabled:bg-yellow-300"
+                            onClick={handleSendFollowup}
+                            disabled={isFollowupLoading || !followupQuestion.trim()}
+                          >{isFollowupLoading ? 'جاري الإرسال...' : 'إرسال السؤال'}</button>
+                        </div>
+                        {followupError && <div className="text-red-600 text-sm mt-1">{followupError}</div>}
+                      </div>
+                    )}
+                    {/* عرض الجواب التكميلي */}
+                    {followupAnswer && (
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4 text-right whitespace-pre-line text-blue-900">
+                        <div className="font-bold mb-2 text-blue-800">الجواب القانوني التكميلي:</div>
+                        <div>{followupAnswer}</div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+              {/* Left Column - Input (now visually on the right) */}
+              <div className="space-y-6 order-1 lg:order-2" dir="rtl">
+                <div className="bg-white rounded-lg shadow p-6">
+                  <h2 className="text-xl font-bold mb-2 text-slate-800">ملخص القضية</h2>
+                  <label className="block text-slate-700 mb-2">أدخل تفاصيل القضية، الوقائع، والأطراف المعنية</label>
+                  <textarea
+                    className="w-full h-32 p-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-right"
+                    placeholder="يرجى وصف تفاصيل القضية، الأطراف المعنية، الوقائع الأساسية، وأي ظروف ذات صلة…"
+                    value={caseText}
+                    onChange={e => setCaseText(e.target.value)}
+                    dir="rtl"
+                  />
+                </div>
+                {/* Clarifying Questions */}
+                {caseText.trim() && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-2" dir="rtl">
+                    <h4 className="text-md font-semibold text-blue-800 mb-2">أسئلة توضيحية مقترحة</h4>
+                    {isQuestionsLoading ? (
+                      <div className="text-blue-600">جاري توليد الأسئلة...</div>
+                    ) : clarifyingQuestions.length > 0 ? (
+                      <ul className="list-disc list-inside text-blue-900 space-y-1 pr-2">
+                        {clarifyingQuestions.map((q, idx) => (
+                          <li key={idx}>{q}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <div className="text-slate-500">لا توجد أسئلة توضيحية حالياً.</div>
+                    )}
+                    {clarifyingQuestionsRaw && clarifyingQuestions.length <= 1 && (
+                      <pre className="text-xs text-slate-400 mt-2 whitespace-pre-wrap">{clarifyingQuestionsRaw}</pre>
+                    )}
+                  </div>
+                )}
+                {/* Action Buttons */}
+                <div className="flex gap-3" dir="rtl">
                   <button
-                    className="w-full py-3 bg-yellow-100 hover:bg-yellow-200 text-yellow-900 font-bold rounded-lg shadow transition"
-                    onClick={() => setShowFollowupBox(true)}
+                    onClick={handleAnalyzeCase}
+                    disabled={isLoading || !caseText.trim()}
+                    className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-blue-800 hover:bg-blue-900 disabled:bg-slate-400 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-all"
                   >
-                    🧠 هل التحليل كافٍ؟ أضف سؤالًا
+                    {isLoading ? '...جاري التحليل' : 'حلل القضية'}
                   </button>
-                ) : (
-                  <div className="bg-white border border-yellow-200 rounded-lg p-4 mt-2 space-y-3">
-                    <label className="block text-slate-700 mb-1 font-medium">اكتب سؤالك التكميلي المتعلق بنفس القضية:</label>
-                    <textarea
-                      className="w-full h-20 p-2 border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-yellow-400 text-right"
-                      placeholder="مثال: ما هو موقف القانون المغربي من الوقائع التالية..."
-                      value={followupQuestion}
-                      onChange={e => setFollowupQuestion(e.target.value)}
-                      disabled={isFollowupLoading}
-                      dir="rtl"
-                    />
-                    <div className="flex gap-2 justify-end">
-                      <button
-                        className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded font-medium"
-                        onClick={() => { setShowFollowupBox(false); setFollowupQuestion(''); setFollowupAnswer(null); setFollowupError(null); }}
-                        disabled={isFollowupLoading}
-                      >إلغاء</button>
-                      <button
-                        className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded font-bold disabled:bg-yellow-300"
-                        onClick={handleSendFollowup}
-                        disabled={isFollowupLoading || !followupQuestion.trim()}
-                      >{isFollowupLoading ? 'جاري الإرسال...' : 'إرسال السؤال'}</button>
+                  <button
+                    onClick={handleClearAll}
+                    className="px-6 py-3 bg-slate-600 hover:bg-slate-700 text-white rounded-lg font-medium transition-all"
+                  >
+                    مسح الكل
+                  </button>
+                </div>
+                {/* Quick Info */}
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4" dir="rtl">
+                  <div className="flex items-start gap-3">
+                    {/* Info icon here if needed */}
+                    <div>
+                      <h4 className="text-sm font-medium text-amber-800 mb-1">إرشادات التحليل</h4>
+                      <ul className="text-sm text-amber-700 space-y-1">
+                        <li>• قدم وقائع القضية والظروف بتفصيل</li>
+                        <li>• اذكر الأطراف المعنية وأدوارهم</li>
+                        <li>• أضف أي تساؤلات أو إشكالات قانونية</li>
+                      </ul>
                     </div>
-                    {followupError && <div className="text-red-600 text-sm mt-1">{followupError}</div>}
                   </div>
-                )}
-                {/* عرض الجواب التكميلي */}
-                {followupAnswer && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4 text-right whitespace-pre-line text-blue-900">
-                    <div className="font-bold mb-2 text-blue-800">الجواب القانوني التكميلي:</div>
-                    <div>{followupAnswer}</div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-          {/* Left Column - Input (now visually on the right) */}
-          <div className="space-y-6 order-1 lg:order-2" dir="rtl">
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-xl font-bold mb-2 text-slate-800">ملخص القضية</h2>
-              <label className="block text-slate-700 mb-2">أدخل تفاصيل القضية، الوقائع، والأطراف المعنية</label>
-              <textarea
-                className="w-full h-32 p-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-right"
-                placeholder="يرجى وصف تفاصيل القضية، الأطراف المعنية، الوقائع الأساسية، وأي ظروف ذات صلة…"
-                value={caseText}
-                onChange={e => setCaseText(e.target.value)}
-                dir="rtl"
-              />
-            </div>
-            {/* Clarifying Questions */}
-            {caseText.trim() && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-2" dir="rtl">
-                <h4 className="text-md font-semibold text-blue-800 mb-2">أسئلة توضيحية مقترحة</h4>
-                {isQuestionsLoading ? (
-                  <div className="text-blue-600">جاري توليد الأسئلة...</div>
-                ) : clarifyingQuestions.length > 0 ? (
-                  <ul className="list-disc list-inside text-blue-900 space-y-1 pr-2">
-                    {clarifyingQuestions.map((q, idx) => (
-                      <li key={idx}>{q}</li>
-                    ))}
-                  </ul>
-                ) : (
-                  <div className="text-slate-500">لا توجد أسئلة توضيحية حالياً.</div>
-                )}
-                {clarifyingQuestionsRaw && clarifyingQuestions.length <= 1 && (
-                  <pre className="text-xs text-slate-400 mt-2 whitespace-pre-wrap">{clarifyingQuestionsRaw}</pre>
-                )}
-              </div>
-            )}
-            {/* Action Buttons */}
-            <div className="flex gap-3" dir="rtl">
-              <button
-                onClick={handleAnalyzeCase}
-                disabled={isLoading || !caseText.trim()}
-                className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-blue-800 hover:bg-blue-900 disabled:bg-slate-400 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-all"
-              >
-                {isLoading ? '...جاري التحليل' : 'حلل القضية'}
-              </button>
-              <button
-                onClick={handleClearAll}
-                className="px-6 py-3 bg-slate-600 hover:bg-slate-700 text-white rounded-lg font-medium transition-all"
-              >
-                مسح الكل
-              </button>
-            </div>
-            {/* Quick Info */}
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4" dir="rtl">
-              <div className="flex items-start gap-3">
-                {/* Info icon here if needed */}
-                <div>
-                  <h4 className="text-sm font-medium text-amber-800 mb-1">إرشادات التحليل</h4>
-                  <ul className="text-sm text-amber-700 space-y-1">
-                    <li>• قدم وقائع القضية والظروف بتفصيل</li>
-                    <li>• اذكر الأطراف المعنية وأدوارهم</li>
-                    <li>• أضف أي تساؤلات أو إشكالات قانونية</li>
-                  </ul>
                 </div>
-              </div>
-            </div>
-            {/* Transcription Section */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-xl font-bold mb-2 text-slate-800">نسخ الصوت إلى نص</h2>
-              <input
-                type="file"
-                accept="audio/*"
-                onChange={e => {
-                  console.log('Input file changed', e);
-                  handleTranscribeAudio(e);
-                }}
-                ref={fileInputRef}
-                className="hidden"
-              />
-              <button
-                onClick={() => {
-                  console.log('Transcribe button clicked');
-                  fileInputRef.current?.click();
-                }}
-                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium"
-                disabled={isTranscribing}
-              >
-                {isTranscribing ? 'جاري التحويل...' : 'تحويل الصوت إلى نص'}
-              </button>
-              {transcriptionResult && (
-                <div className="mt-4 p-3 bg-gray-50 border rounded text-right whitespace-pre-wrap text-slate-800" style={{maxHeight: '200px', overflowY: 'auto'}}>
-                  <strong>النص المحول:</strong>
-                  <div>{transcriptionResult}</div>
+                {/* Transcription Section */}
+                <div className="bg-white rounded-lg shadow p-6">
+                  <h2 className="text-xl font-bold mb-2 text-slate-800">نسخ الصوت إلى نص</h2>
+                  <input
+                    type="file"
+                    accept="audio/*"
+                    onChange={e => {
+                      console.log('Input file changed', e);
+                      handleTranscribeAudio(e);
+                    }}
+                    ref={fileInputRef}
+                    className="hidden"
+                  />
+                  <button
+                    onClick={() => {
+                      console.log('Transcribe button clicked');
+                      fileInputRef.current?.click();
+                    }}
+                    className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium"
+                    disabled={isTranscribing}
+                  >
+                    {isTranscribing ? 'جاري التحويل...' : 'تحويل الصوت إلى نص'}
+                  </button>
+                  {transcriptionResult && (
+                    <div className="mt-4 p-3 bg-gray-50 border rounded text-right whitespace-pre-wrap text-slate-800" style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                      <strong>النص المحول:</strong>
+                      <div>{transcriptionResult}</div>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-            {/* Report Generation Section */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-xl font-bold mb-2 text-slate-800">توليد التقرير</h2>
-              <p className="text-sm text-slate-600 mb-4">
-                التقرير يحتوي على النص العربي المحول إلى الحروف اللاتينية للتوافق مع PDF
-              </p>
-              <button
-                onClick={async () => {
-                  if (!analysis) {
-                    setError('يرجى تحليل القضية أولاً.');
-                    return;
-                  }
-                  setIsLoading(true);
-                  setError(null);
-                  try {
-                    console.log('Generating report with analysis:', analysis);
-                    const reportGenerator = new PDFLibReportGenerator();
-                    const reportUrl = await reportGenerator.generateReport(analysis);
-                    console.log('Report generated successfully:', reportUrl);
-                  } catch (err) {
-                    console.error('Report generation error:', err);
-                    setError('فشل توليد التقرير. يرجى المحاولة مرة أخرى أو الاتصال بالدعم التقني.');
-                  } finally {
-                    setIsLoading(false);
-                  }
-                }}
-                disabled={isLoading || !analysis}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg font-medium"
-              >
-                {isLoading ? 'جاري توليد التقرير...' : 'توليد تقرير PDF'}
-              </button>
-            </div>
-          </div>
-        </div>
-          )}
-      </main>
+                {/* Report Generation Section */}
+                <div className="bg-white rounded-lg shadow p-6">
+                  <h2 className="text-xl font-bold mb-2 text-slate-800">توليد التقرير</h2>
+                  <p className="text-sm text-slate-600 mb-4">
+                    التقرير يحتوي على النص العربي المحول إلى الحروف اللاتينية للتوافق مع PDF
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={async () => {
+                        if (!analysis) {
+                          setError('يرجى تحليل القضية أولاً.');
+                          return;
+                        }
+                        setIsLoading(true);
+                        setError(null);
+                        try {
+                          console.log('Generating report with analysis:', analysis);
+                          const reportGenerator = new ImprovedReportGenerator();
+                          const reportUrl = await reportGenerator.generateReport(analysis);
+                          console.log('Report generated successfully:', reportUrl);
+                          setError(null); // Clear any previous errors
+                        } catch (err) {
+                          console.error('Report generation error:', err);
+                          let errorMessage = 'فشل توليد التقرير. ';
 
-      {/* Footer */}
-      <footer className="bg-white border-t border-slate-200 mt-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-slate-600">
+                          if (err instanceof Error) {
+                            if (err.message.includes('Font fetch failed')) {
+                              errorMessage += 'مشكلة في تحميل خط اللغة العربية. تحقق من اتصال الإنترنت.';
+                            } else if (err.message.includes('analysis')) {
+                              errorMessage += 'يرجى تحليل القضية أولاً قبل توليد التقرير.';
+                            } else {
+                              errorMessage += err.message;
+                            }
+                          } else {
+                            errorMessage += 'خطأ غير معروف. يرجى المحاولة مرة أخرى.';
+                          }
+
+                          setError(errorMessage);
+                        } finally {
+                          setIsLoading(false);
+                        }
+                      }}
+                      disabled={isLoading || !analysis}
+                      className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg font-medium"
+                    >
+                      {isLoading ? 'جاري توليد التقرير...' : 'توليد تقرير PDF'}
+                    </button>
+
+                    <button
+                      onClick={() => setShowDiagnostics(true)}
+                      className="px-3 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg font-medium text-sm"
+                      title="تشخيص مشاكل توليد التقرير"
+                    >
+                      🔧
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </main>
+
+        {/* Footer */}
+        <footer className="bg-white border-t border-slate-200 mt-12">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-slate-600">
                 منصة الخبير ، من تصميم الطالب الشغوف : مصعب فاطمي .
-            </p>
-            <div className="flex items-center gap-4 text-sm text-slate-500">
-              <span>Secure</span>
-              <span>•</span>
-              <span>Confidential</span>
-              <span>•</span>
-              <span>Professional</span>
+              </p>
+              <div className="flex items-center gap-4 text-sm text-slate-500">
+                <span>Secure</span>
+                <span>•</span>
+                <span>Confidential</span>
+                <span>•</span>
+                <span>Professional</span>
+              </div>
             </div>
           </div>
-        </div>
-      </footer>
+        </footer>
 
         {/* Subscription Modal */}
         {showSubscriptionModal && (
@@ -732,7 +786,7 @@ function App() {
                     ✕
                   </button>
                 </div>
-    </div>
+              </div>
               <div className="p-4">
                 <PayPalSubscription
                   onSubscriptionSuccess={handleSubscriptionSuccess}
@@ -767,7 +821,7 @@ function App() {
                 )}
               </div>
             </div>
-      </div>
+          </div>
         )}
 
         {/* Admin Login Modal */}
@@ -924,6 +978,14 @@ export function ExamplePage() {
           </div>
         </div>
       </footer>
+
+      {/* Report Diagnostics Modal */}
+      {showDiagnostics && (
+        <ReportDiagnostics
+          analysis={analysis}
+          onClose={() => setShowDiagnostics(false)}
+        />
+      )}
     </div>
   );
 }

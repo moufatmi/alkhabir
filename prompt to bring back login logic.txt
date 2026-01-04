@@ -1,0 +1,1 @@
+"Please search for all code blocks marked with TEMPORARY DISABLE AUTH in src/App.tsx and src/components/Header.tsx. Uncomment the original code inside these blocks and remove the temporary mock values (like the guest user and forced subscription). Restore the authentication and subscription logic to its previous state."

@@ -1,13 +1,16 @@
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { auth } from "../firebase";
-import { useAuthState } from "react-firebase-hooks/auth";
-import { useUserRole } from "../hooks/useUserRole";
+// import { useAuthState } from "react-firebase-hooks/auth";
+// import { useUserRole } from "../hooks/useUserRole";
 
 const Header: React.FC = () => {
-  const [user] = useAuthState(auth);
-  const navigate = useNavigate();
-  const { role } = useUserRole(user ?? null);
+  /* TEMPORARY DISABLE AUTH START */
+  // const [user] = useAuthState(auth);
+  // const { role } = useUserRole(user ?? null);
+  const user = { uid: 'guest' }; // Mock user
+  const role = 'guest';
+  /* TEMPORARY DISABLE AUTH END */
 
   return (
     <header style={{ padding: "16px", background: "#f3f4f6", marginBottom: "24px" }}>
@@ -23,6 +26,8 @@ const Header: React.FC = () => {
         {/* Navigation */}
         <nav style={{ display: "flex", gap: "16px" }}>
           <Link to="/">الرئيسية</Link>
+          {/* TEMPORARY DISABLE AUTH START - Hide Auth Buttons */
+          /*
           {user ? (
             <>
               <Link to="/client">لوحة العميل</Link>
@@ -37,6 +42,8 @@ const Header: React.FC = () => {
           ) : (
             <button onClick={() => navigate("/login")}>دخول</button>
           )}
+          */
+          /* TEMPORARY DISABLE AUTH END */}
           {/* No admin panel link for clients */}
         </nav>
       </div>
