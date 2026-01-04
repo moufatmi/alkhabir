@@ -6,6 +6,7 @@ import { ResultsPanel } from './components/ResultsPanel';
 import { analyzeLegalCase, askLegalQuestion, suggestClarifyingQuestions } from './services/legalAnalysis';
 import LegalQuestionPage from './components/LegalQuestionPage';
 import { transcribeAudio } from './services/speechToText';
+import { extractTextFromImage } from './services/ocr';
 import { ImprovedReportGenerator } from './services/reportGeneratorImproved';
 import PayPalSubscription from './components/PayPalSubscription';
 import { ReportDiagnostics } from './components/ReportDiagnostics';
@@ -48,6 +49,7 @@ function App() {
   const [clarifyingQuestionsRaw, setClarifyingQuestionsRaw] = useState('');
   const [isQuestionsLoading, setIsQuestionsLoading] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
+  const [isOcrLoading, setIsOcrLoading] = useState(false);
   const [transcriptionResult, setTranscriptionResult] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showFollowupBox, setShowFollowupBox] = useState(false);
@@ -110,69 +112,8 @@ function App() {
     /* TEMPORARY DISABLE AUTH END */
   }, []);
 
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      let ignore = false;
-      if (!caseText.trim()) {
-        setClarifyingQuestions([]);
-        return;
-      }
-      setIsQuestionsLoading(true);
-      suggestClarifyingQuestions(caseText)
-        .then((result) => {
-          console.log('Clarifying questions result:', result);
-          if (result && typeof result === 'object') {
-            Object.entries(result).forEach(([k, v]) => {
-              console.log('Key:', k, 'Value:', v);
-            });
-          }
-          if (ignore) return;
-          let questions: string[] = [];
-          let rawText = '';
-          if (typeof result === 'string') {
-            questions = result.split(/\n|\r/).map((q: string) => q.trim()).filter((q: string) => q.length > 0);
-          } else if (result && typeof result === 'object' && result.raw && typeof result.raw === 'string') {
-            questions = result.raw.split(/\n|\r/).map((q: string) => q.trim()).filter((q: string) => q.length > 0);
-          } else if (result && typeof result === 'object') {
-            // Try to find the first array property
-            const arrProp = Object.values(result).find((v) => Array.isArray(v));
-            if (arrProp) {
-              questions = arrProp as string[];
-            } else if (result.raw && typeof result.raw === 'string') {
-              rawText = result.raw.trim();
-              // Extract lines that look like numbered or asterisked questions
-              questions = result.raw
-                .split(/\n|\r/)
-                .map((line: string) => line.trim())
-                .filter((line: string) => /^\d+\.\s*(\*\*)?/.test(line))
-                .map((line: string) => line.replace(/^\d+\.\s*(\*\*)?\s*/, '').replace(/\*\*$/, '').trim());
-              // Fallback: if no questions found, show the whole raw as one question
-              if (questions.length === 0) {
-                questions = [rawText];
-              }
-              console.log('Parsed clarifying questions:', questions);
-            } else {
-              // Try to find the first string property and split by lines
-              const strProp = Object.values(result).find((v) => typeof v === 'string');
-              if (strProp) {
-                questions = (strProp as string).split(/\n|\r/).filter((q) => q.trim().length > 0);
-              }
-            }
-          }
-          setClarifyingQuestions(questions);
-          setClarifyingQuestionsRaw(rawText);
-        })
-        .catch(() => {
-          if (!ignore) setClarifyingQuestions([]);
-        })
-        .finally(() => {
-          if (!ignore) setIsQuestionsLoading(false);
-        });
-      return () => { ignore = true; };
-    }, 1500); // Wait 1.5 seconds after typing stops
-
-    return () => clearTimeout(timeoutId);
-  }, [caseText]);
+  // Automatic clarifying questions disabled to save quota
+  // useEffect(() => { ... }, [caseText]);
 
   const handleAnalyzeCase = async () => {
     if (!caseText.trim()) {
@@ -199,6 +140,41 @@ function App() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleSuggestQuestions = () => {
+    if (!caseText.trim()) return;
+    setIsQuestionsLoading(true);
+    suggestClarifyingQuestions(caseText)
+      .then((result) => {
+        let questions: string[] = [];
+        let rawText = '';
+        if (typeof result === 'string') {
+          questions = result.split(/\n|\r/).map((q: string) => q.trim()).filter((q: string) => q.length > 0);
+        } else if (result && typeof result === 'object') {
+          // Try to find the first array property
+          const arrProp = Object.values(result).find((v) => Array.isArray(v));
+          if (arrProp) {
+            questions = arrProp as string[];
+          } else if (result.raw && typeof result.raw === 'string') {
+            rawText = result.raw.trim();
+            // Extract lines that look like numbered or asterisked questions
+            questions = result.raw
+              .split(/\n|\r/)
+              .map((line: string) => line.trim())
+              .filter((line: string) => /^\d+\.\s*(\*\*)?/.test(line))
+              .map((line: string) => line.replace(/^\d+\.\s*(\*\*)?\s*/, '').replace(/\*\*$/, '').trim());
+            // Fallback: if no questions found, show the whole raw as one question
+            if (questions.length === 0) {
+              questions = [rawText];
+            }
+          }
+        }
+        setClarifyingQuestions(questions);
+        setClarifyingQuestionsRaw(rawText);
+      })
+      .catch(() => setClarifyingQuestions([]))
+      .finally(() => setIsQuestionsLoading(false));
   };
 
   const handleClearAll = () => {
@@ -275,6 +251,23 @@ function App() {
     clearSubscription();
     setIsSubscribed(false);
     setShowSubscriptionModal(true);
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsOcrLoading(true);
+    try {
+      const text = await extractTextFromImage(file);
+      setCaseText((prev) => prev + (prev ? '\n\n' : '') + text);
+    } catch (err: any) {
+      setError(err.message || 'فشل تحويل الصورة إلى نص');
+    } finally {
+      setIsOcrLoading(false);
+      // Reset input
+      e.target.value = '';
+    }
   };
 
   const handleAdminLoginSuccess = () => {
@@ -615,7 +608,16 @@ function App() {
                 {/* Clarifying Questions */}
                 {caseText.trim() && (
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-2" dir="rtl">
-                    <h4 className="text-md font-semibold text-blue-800 mb-2">أسئلة توضيحية مقترحة</h4>
+                    <div className="flex justify-between items-center mb-2">
+                      <h4 className="text-md font-semibold text-blue-800">أسئلة توضيحية مقترحة</h4>
+                      <button
+                        onClick={handleSuggestQuestions}
+                        disabled={isQuestionsLoading}
+                        className="text-xs bg-blue-100 hover:bg-blue-200 text-blue-800 px-3 py-1 rounded transition-colors"
+                      >
+                        {isQuestionsLoading ? 'جاري التوليد...' : 'اقترح أسئلة'}
+                      </button>
+                    </div>
                     {isQuestionsLoading ? (
                       <div className="text-blue-600">جاري توليد الأسئلة...</div>
                     ) : clarifyingQuestions.length > 0 ? (
@@ -664,27 +666,50 @@ function App() {
                 </div>
                 {/* Transcription Section */}
                 <div className="bg-white rounded-lg shadow p-6">
-                  <h2 className="text-xl font-bold mb-2 text-slate-800">نسخ الصوت إلى نص</h2>
-                  <input
-                    type="file"
-                    accept="audio/*"
-                    onChange={e => {
-                      console.log('Input file changed', e);
-                      handleTranscribeAudio(e);
-                    }}
-                    ref={fileInputRef}
-                    className="hidden"
-                  />
-                  <button
-                    onClick={() => {
-                      console.log('Transcribe button clicked');
-                      fileInputRef.current?.click();
-                    }}
-                    className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium"
-                    disabled={isTranscribing}
-                  >
-                    {isTranscribing ? 'جاري التحويل...' : 'تحويل الصوت إلى نص'}
-                  </button>
+                  <h2 className="text-xl font-bold mb-2 text-slate-800">أدوات ذكية</h2>
+                  <div className="flex gap-4 flex-wrap">
+                    {/* Audio Section */}
+                    <div className="flex-1 min-w-[200px]">
+                      <h3 className="text-sm font-semibold text-slate-600 mb-2">نسخ الصوت إلى نص</h3>
+                      <input
+                        type="file"
+                        accept="audio/*"
+                        onChange={e => {
+                          console.log('Input file changed', e);
+                          handleTranscribeAudio(e);
+                        }}
+                        ref={fileInputRef}
+                        className="hidden"
+                        id="audio-upload"
+                        disabled={isTranscribing}
+                      />
+                      <label
+                        htmlFor="audio-upload"
+                        className={`flex items-center justify-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium cursor-pointer transition-all ${isTranscribing ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      >
+                        {isTranscribing ? 'جاري التحويل...' : 'رفع ملف صوتي'}
+                      </label>
+                    </div>
+
+                    {/* Image Section */}
+                    <div className="flex-1 min-w-[200px]">
+                      <h3 className="text-sm font-semibold text-slate-600 mb-2">تحويل صورة إلى نص</h3>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        className="hidden"
+                        id="image-upload"
+                        disabled={isOcrLoading}
+                      />
+                      <label
+                        htmlFor="image-upload"
+                        className={`flex items-center justify-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg font-medium cursor-pointer transition-all ${isOcrLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      >
+                        {isOcrLoading ? 'جاري الاستخراج...' : 'رفع صورة مستند'}
+                      </label>
+                    </div>
+                  </div>
                   {transcriptionResult && (
                     <div className="mt-4 p-3 bg-gray-50 border rounded text-right whitespace-pre-wrap text-slate-800" style={{ maxHeight: '200px', overflowY: 'auto' }}>
                       <strong>النص المحول:</strong>
@@ -979,13 +1004,7 @@ export function ExamplePage() {
         </div>
       </footer>
 
-      {/* Report Diagnostics Modal */}
-      {showDiagnostics && (
-        <ReportDiagnostics
-          analysis={analysis}
-          onClose={() => setShowDiagnostics(false)}
-        />
-      )}
+
     </div>
   );
 }

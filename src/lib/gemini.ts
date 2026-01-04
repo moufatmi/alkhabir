@@ -80,3 +80,40 @@ export async function analyzeWithGemini(summary: string): Promise<any> {
     throw error;
   }
 }
+
+export async function analyzeImageWithGemini(prompt: string, base64Image: string, mimeType: string): Promise<string> {
+  try {
+    const result = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-goog-api-key': GEMINI_API_KEY
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [
+            { text: prompt },
+            {
+              inline_data: {
+                mime_type: mimeType,
+                data: base64Image
+              }
+            }
+          ]
+        }]
+      })
+    });
+
+    if (!result.ok) {
+      const errorText = await result.text();
+      throw new Error(`API Error: ${result.status} ${result.statusText} - ${errorText}`);
+    }
+
+    const json = await result.json();
+    const text = json.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    return text;
+  } catch (error) {
+    console.error('Gemini Image API Error:', error);
+    throw error;
+  }
+}
