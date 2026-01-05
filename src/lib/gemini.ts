@@ -1,4 +1,9 @@
-const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY!;
+import Groq from 'groq-sdk';
+
+const groq = new Groq({
+  apiKey: import.meta.env.VITE_GROQ_API_KEY,
+  dangerouslyAllowBrowser: true
+});
 
 const cleanJsonString = (text: string) => {
   let cleaned = text;
@@ -13,31 +18,24 @@ const cleanJsonString = (text: string) => {
   return cleaned.trim();
 };
 
+export async function generateRawText(prompt: string, model: string = 'llama-3.3-70b-versatile'): Promise<string> {
+  try {
+    const chatCompletion = await groq.chat.completions.create({
+      messages: [{ role: 'user', content: prompt }],
+      model: model,
+      temperature: 0.3,
+    });
+    return chatCompletion.choices[0]?.message?.content || '';
+  } catch (error) {
+    console.error('Groq Text API Error:', error);
+    throw error;
+  }
+}
+
 export async function analyzeWithGemini(summary: string): Promise<any> {
   try {
-    const result = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-goog-api-key': GEMINI_API_KEY
-      },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: summary
-          }]
-        }]
-      })
-    });
-
-    if (!result.ok) {
-      const errorText = await result.text();
-      throw new Error(`API Error: ${result.status} ${result.statusText} - ${errorText}`);
-    }
-
-    const json = await result.json();
-    const text = json.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    console.log('Gemini raw response:', text);
+    const text = await generateRawText(summary);
+    console.log('Groq raw response:', text);
 
     let parsed = {};
     try {
@@ -45,27 +43,15 @@ export async function analyzeWithGemini(summary: string): Promise<any> {
       parsed = JSON.parse(cleaned);
     } catch (e) {
       console.error('JSON Parse Error:', e);
-      // Try to fix common JSON errors (very basic)
       try {
         const fixed = cleanJsonString(text)
-          .replace(/,\s*}/g, '}') // Remove trailing commas
+          .replace(/,\s*}/g, '}')
           .replace(/,\s*]/g, ']');
         parsed = JSON.parse(fixed);
       } catch (e2) {
         console.error('JSON Fix Failed:', e2);
         parsed = { raw: text };
       }
-    }
-
-    // Ensure we return the raw text if parsing failed completely or if it's just a raw string
-    if (Object.keys(parsed).length === 1 && (parsed as any).raw) {
-      return {
-        classifications: [],
-        keyFactors: [],
-        recommendedActions: [],
-        precedentCases: [],
-        ...parsed
-      };
     }
 
     return {
@@ -75,45 +61,38 @@ export async function analyzeWithGemini(summary: string): Promise<any> {
       precedentCases: [],
       ...parsed
     };
+
   } catch (error) {
-    console.error('Gemini API Error:', error);
+    console.error('Groq API Error:', error);
     throw error;
   }
 }
 
 export async function analyzeImageWithGemini(prompt: string, base64Image: string, mimeType: string): Promise<string> {
   try {
-    const result = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-goog-api-key': GEMINI_API_KEY
-      },
-      body: JSON.stringify({
-        contents: [{
-          parts: [
-            { text: prompt },
+    const chatCompletion = await groq.chat.completions.create({
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: prompt },
             {
-              inline_data: {
-                mime_type: mimeType,
-                data: base64Image
-              }
-            }
-          ]
-        }]
-      })
+              type: 'image_url',
+              image_url: {
+                url: `data:${mimeType};base64,${base64Image}`,
+              },
+            },
+          ],
+        },
+      ],
+      model: 'llama-3.2-11b-vision-preview',
+      temperature: 0.1,
+      max_tokens: 1024,
     });
 
-    if (!result.ok) {
-      const errorText = await result.text();
-      throw new Error(`API Error: ${result.status} ${result.statusText} - ${errorText}`);
-    }
-
-    const json = await result.json();
-    const text = json.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    return text;
+    return chatCompletion.choices[0]?.message?.content || '';
   } catch (error) {
-    console.error('Gemini Image API Error:', error);
+    console.error('Groq Image API Error:', error);
     throw error;
   }
 }
