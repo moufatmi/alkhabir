@@ -16,6 +16,7 @@ import { isAdmin, adminLogout, getCurrentAdmin } from './services/adminAuth';
 import { Link, useNavigate, Route } from "react-router-dom";
 // import { useAuthState } from "react-firebase-hooks/auth";
 import Header from "./components/Header";
+import { SEO } from './components/SEO';
 // import { useUserRole } from './hooks/useUserRole';
 
 type HistoryItem = {
@@ -306,6 +307,7 @@ function App() {
 
   return (
     <>
+      <SEO />
       <Header />
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50" dir="rtl">
         {/* Header */}
@@ -884,6 +886,7 @@ export function ExamplePage() {
   }
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50" dir="rtl">
+      <SEO title="مثال - الخبير" description="صفحة مثال توضيحية لمنصة الخبير القانونية." />
       <Header />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
