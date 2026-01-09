@@ -30,7 +30,6 @@ jobs:
         env:
           # This pulls the key from your GitHub Repository Secrets
           VITE_GROQ_API_KEY: ${{ secrets.VITE_GROQ_API_KEY }}
-          VITE_GEMINI_API_KEY: ${{ secrets.VITE_GEMINI_API_KEY }}
 
       - name: Deploy
         uses: JamesIves/github-pages-deploy-action@v4
