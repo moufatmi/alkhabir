@@ -1,9 +1,7 @@
-import Groq from 'groq-sdk';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const groq = new Groq({
-  apiKey: import.meta.env.VITE_GROQ_API_KEY,
-  dangerouslyAllowBrowser: true
-});
+// Initialize the Google Generative AI client
+const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
 
 const cleanJsonString = (text: string) => {
   let cleaned = text;
@@ -18,16 +16,14 @@ const cleanJsonString = (text: string) => {
   return cleaned.trim();
 };
 
-export async function generateRawText(prompt: string, model: string = 'llama-3.3-70b-versatile'): Promise<string> {
+export async function generateRawText(prompt: string, modelName: string = 'gemini-1.5-flash'): Promise<string> {
   try {
-    const chatCompletion = await groq.chat.completions.create({
-      messages: [{ role: 'user', content: prompt }],
-      model: model,
-      temperature: 0.3,
-    });
-    return chatCompletion.choices[0]?.message?.content || '';
+    const model = genAI.getGenerativeModel({ model: modelName });
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    return response.text();
   } catch (error) {
-    console.error('Groq Text API Error:', error);
+    console.error('Gemini Text API Error:', error);
     throw error;
   }
 }
@@ -35,7 +31,7 @@ export async function generateRawText(prompt: string, model: string = 'llama-3.3
 export async function analyzeWithGemini(summary: string): Promise<any> {
   try {
     const text = await generateRawText(summary);
-    console.log('Groq raw response:', text);
+    console.log('Gemini raw response:', text);
 
     let parsed = {};
     try {
@@ -63,36 +59,29 @@ export async function analyzeWithGemini(summary: string): Promise<any> {
     };
 
   } catch (error) {
-    console.error('Groq API Error:', error);
+    console.error('Gemini API Error:', error);
     throw error;
   }
 }
 
 export async function analyzeImageWithGemini(prompt: string, base64Image: string, mimeType: string): Promise<string> {
   try {
-    const chatCompletion = await groq.chat.completions.create({
-      messages: [
-        {
-          role: 'user',
-          content: [
-            { type: 'text', text: prompt },
-            {
-              type: 'image_url',
-              image_url: {
-                url: `data:${mimeType};base64,${base64Image}`,
-              },
-            },
-          ],
-        },
-      ],
-      model: 'meta-llama/llama-4-scout-17b-16e-instruct',
-      temperature: 0.1,
-      max_tokens: 1024,
-    });
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
-    return chatCompletion.choices[0]?.message?.content || '';
+    const result = await model.generateContent([
+      prompt,
+      {
+        inlineData: {
+          data: base64Image,
+          mimeType: mimeType
+        }
+      }
+    ]);
+
+    const response = await result.response;
+    return response.text();
   } catch (error) {
-    console.error('Groq Image API Error:', error);
+    console.error('Gemini Image API Error:', error);
     throw error;
   }
 }

@@ -13,6 +13,7 @@
     "update": "git add . && git commit -m 'update' && git push && npm run build && npm run deploy"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@pdf-lib/fontkit": "^1.1.1",
     "@react-pdf/renderer": "^4.3.0",
     "arabic-persian-reshaper": "^1.0.1",
