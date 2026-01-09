@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist",
-    "update": "git add . && git commit -m 'update' && git push && npm run build && npm run deploy"
+    "update": "git add . && git commit -m 'update' && git push",
+    "update-local": "git add . && git commit -m 'update' && git push && npm run build && npm run deploy"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
