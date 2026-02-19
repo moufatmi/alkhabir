@@ -399,7 +399,17 @@ function App() {
         </header>
 
         {/* Main Content */}
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
+          {/* Hero Section */}
+          <div className="text-center mb-12 animate-fade-in">
+            <h1 className="text-4xl md:text-5xl font-bold font-heading text-primary-900 mb-4 leading-tight">
+              مستشارك القانوني الذكي <span className="text-gold-500">الخبير</span>
+            </h1>
+            <p className="text-lg text-slate-600 max-w-2xl mx-auto leading-relaxed">
+              تحليل قانوني فوري ودقيق للنوازل، مدعوم بالذكاء الاصطناعي والترسانة القانونية المغربية.
+            </p>
+          </div>
+          
           {false ? (
             /* TEMPORARY DISABLE AUTH END */
             <div className="max-w-4xl mx-auto text-center py-12">
@@ -573,11 +583,26 @@ function App() {
 
               {/* Left Column - Input */}
               <div className="space-y-6 order-1 lg:order-2" dir="rtl">
-                <div className="bg-white rounded-lg shadow p-6">
-                  <h2 className="text-xl font-bold mb-2 text-slate-800">تفاصيل القضية</h2>
+                <div className="glass rounded-2xl p-8 animate-slide-up">
+                  <div className="flex items-center gap-3 mb-6 border-b border-primary-100 pb-4">
+                    <div className="p-2 bg-primary-50 rounded-lg">
+                      <img src="/logo.svg" className="w-8 h-8 opacity-80" alt="icon" />
+                    </div>
+                    <h2 className="text-xl font-bold text-primary-900 font-heading">تفاصيل النازلة</h2>
+                  </div>
 
                   {/* Title Input */}
-                  <div className="mb-4">
+                  <div className="mb-6">
+                    <label className="block text-sm font-semibold text-primary-800 mb-2">عنوان القضية (اختياري)</label>
+                    <input
+                      type="text"
+                      className="w-full p-4 bg-white/50 border border-secondary-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-secondary-400 focus:bg-white transition-all text-right placeholder-slate-400"
+                      placeholder="مثال: نزاع عقاري حول ملكية أرض"
+                      value={caseTitle}
+                      onChange={e => setCaseTitle(e.target.value)}
+                      dir="rtl"
+                    />
+                  </div>
                     <label className="block text-slate-700 mb-2">عنوان القضية (اختياري)</label>
                     <input
                       type="text"
@@ -589,9 +614,9 @@ function App() {
                     />
                   </div>
 
-                  <label className="block text-slate-700 mb-2">أدخل تفاصيل القضية، الوقائع، والأطراف المعنية</label>
+                  <label className="block text-sm font-semibold text-primary-800 mb-2">الوقائع والتفاصيل</label>
                   <textarea
-                    className="w-full h-32 p-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-right"
+                    className="w-full h-48 p-4 bg-white/50 border border-secondary-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-secondary-400 focus:bg-white transition-all text-right placeholder-slate-400 leading-relaxed resize-none"
                     placeholder="يرجى وصف تفاصيل القضية، الأطراف المعنية، الوقائع الأساسية، وأي ظروف ذات صلة…"
                     value={caseText}
                     onChange={e => setCaseText(e.target.value)}
@@ -628,19 +653,29 @@ function App() {
                   </div>
                 )}
                 {/* Action Buttons */}
-                <div className="flex gap-3" dir="rtl">
+                <div className="flex gap-4" dir="rtl">
                   <button
                     onClick={handleAnalyzeCase}
                     disabled={isLoading || !caseText.trim()}
-                    className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-blue-800 hover:bg-blue-900 disabled:bg-slate-400 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-all"
+                    className="flex-1 flex items-center justify-center gap-3 px-6 py-4 bg-gradient-to-r from-primary-700 to-primary-900 hover:from-primary-800 hover:to-primary-950 disabled:from-slate-400 disabled:to-slate-500 disabled:cursor-not-allowed text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5"
                   >
-                    {isLoading ? '...جاري التحليل' : 'حلل القضية'}
+                    {isLoading ? (
+                      <>
+                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        <span>جاري التحليل...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>🚀</span>
+                        <span>بدء التحليل القانوني</span>
+                      </>
+                    )}
                   </button>
                   <button
                     onClick={handleClearAll}
-                    className="px-6 py-3 bg-slate-600 hover:bg-slate-700 text-white rounded-lg font-medium transition-all"
+                    className="px-6 py-4 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl font-medium shadow-sm hover:shadow transition-all"
                   >
-                    مسح الكل
+                    مسح
                   </button>
                 </div>
                 {/* Quick Info */}

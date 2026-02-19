@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Aref+Ruqaa:wght@400;700&family=Cairo:wght@200;300;400;500;600;700;800;900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -8,33 +10,70 @@
 
 body {
   margin: 0;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-    Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  font-family: 'Cairo', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #f8fafc;
+  @apply bg-slate-50 text-slate-900;
+
+  /* Subtle Background Pattern */
+  background-image:
+    radial-gradient(at 0% 0%, rgba(30, 58, 138, 0.03) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(217, 119, 6, 0.03) 0px, transparent 50%);
+  background-attachment: fixed;
 }
 
-.aref-ruqaa-regular {
-  font-family: "Aref Ruqaa", serif;
-  font-weight: 400;
-  font-style: normal;
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
 }
 
-.aref-ruqaa-bold {
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-200 rounded-full hover:bg-slate-300 transition-colors;
+}
+
+/* Typography Utilities */
+.font-heading {
   font-family: "Aref Ruqaa", serif;
-  font-weight: 700;
-  font-style: normal;
+}
+
+.text-gold {
+  color: #D97706;
+  /* primary-gold */
+}
+
+/* Glass Effect */
+.glass {
+  @apply bg-white/80 backdrop-blur-md border border-white/20 shadow-sm;
+}
+
+.glass-dark {
+  @apply bg-slate-900/90 backdrop-blur-md border border-slate-700/50 shadow-lg text-white;
+}
+
+/* Custom Gradients */
+.bg-gradient-primary {
+  @apply bg-gradient-to-br from-blue-900 via-blue-800 to-blue-900;
+}
+
+.bg-gradient-gold {
+  @apply bg-gradient-to-br from-amber-400 to-amber-600;
 }
 
 @media print {
+
   /* 1. Hide everything */
   body * {
     visibility: hidden;
   }
 
   /* 2. Show only printable area */
-  #printable-area, #printable-area * {
+  #printable-area,
+  #printable-area * {
     visibility: visible;
   }
 
@@ -46,6 +85,7 @@ body {
     width: 100%;
     padding: 20px;
     font-family: 'Times New Roman', serif;
+    /* Classic for print */
     color: black;
     background: white;
   }
@@ -59,5 +99,10 @@ body {
   @page {
     margin: 2cm;
     size: A4;
+  }
+
+  /* Reset body background for print */
+  body {
+    background: white !important;
   }
 }

@@ -13,38 +13,26 @@ const Header: React.FC = () => {
   /* TEMPORARY DISABLE AUTH END */
 
   return (
-    <header style={{ padding: "16px", background: "#f3f4f6", marginBottom: "24px" }}>
-      <div style={{ display: 'flex', flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between', maxWidth: 1200, margin: '0 auto' }}>
+    <header className="bg-white/90 backdrop-blur-md shadow-sm border-b border-primary-100 sticky top-0 z-50 transition-all duration-300">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between flex-row-reverse">
         {/* Logo and App Name */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <img src="/logo.svg" alt="Scales of Justice" style={{ width: 48, height: 48 }} />
-          <div>
-            <h1 style={{ fontSize: 24, fontWeight: 700, color: '#1e293b', fontFamily: 'Aref Ruqaa, serif' }}>الخبير | Alkhabir</h1>
-            <p style={{ fontSize: 14, color: '#475569', fontFamily: 'Aref Ruqaa, serif' }}>المساعد الذكي للقانوني</p>
+        <div className="flex items-center gap-4 group cursor-pointer">
+          <div className="relative">
+            <div className="absolute inset-0 bg-gold-400 rounded-full blur opacity-20 group-hover:opacity-40 transition-opacity"></div>
+            <img src="/logo.svg" alt="Scales of Justice" className="w-12 h-12 relative z-10 drop-shadow-sm" />
+          </div>
+          <div className="flex flex-col items-end">
+            <h1 className="text-2xl font-bold text-primary-900 font-serif leading-none tracking-wide">الخبير | Alkhabir</h1>
+            <p className="text-xs text-primary-600 font-medium tracking-wider mt-1">المساعد الذكي للقانوني</p>
           </div>
         </div>
+
         {/* Navigation */}
-        <nav style={{ display: "flex", gap: "16px" }}>
-          <Link to="/">الرئيسية</Link>
-          {/* TEMPORARY DISABLE AUTH START - Hide Auth Buttons */
-          /*
-          {user ? (
-            <>
-              <Link to="/client">لوحة العميل</Link>
-              <Link to="/subscription">الاشتراك</Link>
-              <button onClick={() => auth.signOut()}>تسجيل الخروج</button>
-              {role === 'admin' && (
-                <button onClick={() => navigate('/moussabfatmimariem')} style={{ background: '#2563eb', color: '#fff', borderRadius: 6, padding: '4px 12px', fontWeight: 'bold' }}>
-                  لوحة المدير
-                </button>
-              )}
-            </>
-          ) : (
-            <button onClick={() => navigate("/login")}>دخول</button>
-          )}
-          */
-          /* TEMPORARY DISABLE AUTH END */}
-          {/* No admin panel link for clients */}
+        <nav className="hidden md:flex items-center gap-6">
+          <Link to="/" className="text-slate-600 hover:text-primary-700 font-medium transition-colors text-sm">الرئيسية</Link>
+          {/* 
+          Auth links commented out as in original file
+          */}
         </nav>
       </div>
     </header>
