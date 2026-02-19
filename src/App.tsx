@@ -13,10 +13,9 @@ import { hasActiveSubscription, getSubscription, clearSubscription, getPlan } fr
 import AdminLogin from './components/AdminLogin';
 import { isAdmin, adminLogout, getCurrentAdmin } from './services/adminAuth';
 import { Link, useNavigate, Route } from "react-router-dom";
-// import { useAuthState } from "react-firebase-hooks/auth";
 import Header from "./components/Header";
 import { SEO } from './components/SEO';
-// import { useUserRole } from './hooks/useUserRole';
+import { databaseService } from './services/database';
 
 type HistoryItem = {
   id: number;
@@ -34,12 +33,12 @@ const userTypes = [
 
 function App() {
   const { user, loading } = useAuth();
+  const [caseTitle, setCaseTitle] = useState('');
   const [caseText, setCaseText] = useState('');
   const [analysis, setAnalysis] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<HistoryItem[]>([]);
-  // const [showHistory, setShowHistory] = useState(false);
   const [showLegalQuestion, setShowLegalQuestion] = useState(false);
   const [clarifyingQuestions, setClarifyingQuestions] = useState<string[]>([]);
   const [clarifyingQuestionsRaw, setClarifyingQuestionsRaw] = useState('');
@@ -60,11 +59,12 @@ function App() {
   const [isAdminUser, setIsAdminUser] = useState(false);
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const navigate = useNavigate();
+
   /* TEMPORARY DISABLE AUTH START */
-  // const { role, loading: loadingRole } = useUserRole(user);
   const role = 'guest';
   const loadingRole = false;
   /* TEMPORARY DISABLE AUTH END */
+
   const [selectedType, setSelectedType] = useState<'student' | 'judge' | 'lawyer'>('student');
 
   // Load history from localStorage on mount
@@ -79,39 +79,55 @@ function App() {
   }, [history]);
 
   // Check subscription and admin status on mount
-  // Check subscription and admin status on mount
   useEffect(() => {
-    /* TEMPORARY DISABLE AUTH START */
-    // if (loadingRole) return; // Wait for role to load
-    // if (role === "admin") {
-    //   setIsSubscribed(true); // Treat admin as always subscribed
-    //   setShowSubscriptionModal(false);
-    // } else {
-    //   const subscribed = hasActiveSubscription();
-    //   setIsSubscribed(subscribed);
-    //   if (!subscribed) setShowSubscriptionModal(true);
-    // }
     setIsSubscribed(true); // Force subscribed for guest access
     setShowSubscriptionModal(false);
-    /* TEMPORARY DISABLE AUTH END */
   }, [role, loadingRole, user]);
 
 
-
-  // Automatic clarifying questions disabled to save quota
-  // useEffect(() => { ... }, [caseText]);
-
   const handleAnalyzeCase = async () => {
     if (!caseText.trim()) {
-      setError('Please enter case details.');
+      setError('المرجو إدخال تفاصيل القضية.');
       return;
     }
+
+    // Ensure user is logged in
+    if (!user) {
+      setError('يجيب عليك تسجيل الدخول لحفظ وتحليل القضية.');
+      return;
+    }
+
+    // Auto-generate title if missing
+    const finalTitle = caseTitle.trim() || `قضية ${new Date().toLocaleDateString('ar-MA')} - ${caseText.slice(0, 20)}...`;
+
     setIsLoading(true);
     setError(null);
+
+    let caseId: string | null = null;
+
     try {
+      // Step 1: Save Draft (Pending)
+      console.log('Saving draft case...');
+      const draftCase = await databaseService.createCase({
+        title: finalTitle,
+        description: caseText,
+      });
+      caseId = draftCase.$id;
+      console.log('Draft case saved with ID:', caseId);
+
+      // Step 2: Perform Analysis
+      console.log('Analyzing case...');
       const result = await analyzeLegalCase(caseText);
       setAnalysis(result);
-      // Add to history
+
+      // Step 3: Update Record (Completed)
+      if (caseId) {
+        console.log('Updating case with analysis result...');
+        await databaseService.updateCaseAnalysis(caseId, JSON.stringify(result));
+        console.log('Case updated successfully.');
+      }
+
+      // Add to history (UI only)
       setHistory([
         {
           id: Date.now(),
@@ -121,8 +137,9 @@ function App() {
         },
         ...history,
       ]);
-    } catch (err) {
-      setError('An error occurred during analysis.');
+    } catch (err: any) {
+      console.error('Analysis failed:', err);
+      setError('حدث خطأ أثناء التحليل. تم حفظ المسودة في حسابك.');
     } finally {
       setIsLoading(false);
     }
@@ -164,17 +181,11 @@ function App() {
   };
 
   const handleClearAll = () => {
+    setCaseTitle('');
     setCaseText('');
     setAnalysis(null);
     setError(null);
   };
-
-  // const handleReopenCase = (item: HistoryItem) => {
-  //   setCaseText(item.text);
-  //   setAnalysis(item.analysis);
-  //   // setShowHistory(false);
-  // };
-
 
   const handleTranscribeAudio = async (event: React.ChangeEvent<HTMLInputElement>) => {
     console.log('handleTranscribeAudio called', event);
@@ -188,7 +199,6 @@ function App() {
     try {
       const transcription = await transcribeAudio(file);
       console.log('Received transcription:', transcription);
-      setTranscriptionResult(transcription);
       setTranscriptionResult(transcription);
     } catch (error) {
       alert('حدث خطأ أثناء تحويل الصوت إلى نص');
@@ -372,41 +382,8 @@ function App() {
           </div>
         </header>
 
-        {/* History Modal */}
-        {/* {showHistory && (
-        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md max-h-[80vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-bold">Previous Cases</h2>
-              <button onClick={() => setShowHistory(false)} className="text-slate-500 hover:text-slate-800">✕</button>
-            </div>
-            {history.length === 0 ? (
-              <p className="text-slate-500">No previous cases found.</p>
-            ) : (
-              <ul className="space-y-4">
-                {history.map((item: HistoryItem) => (
-                  <li key={item.id} className="border-b pb-2">
-                    <div className="font-medium text-slate-800 truncate">{item.text.split('\n')[0].slice(0, 60) || 'Untitled Case'}</div>
-                    <div className="text-xs text-slate-500 mb-1">{item.time}</div>
-                    <button
-                      onClick={() => handleReopenCase(item)}
-                      className="px-2 py-1 text-xs bg-blue-100 hover:bg-blue-200 rounded"
-                    >
-                      Reopen
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </div>
-      )} */}
-
-        {/* Main Content */}
         {/* Main Content */}
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* TEMPORARY DISABLE AUTH START - Force show main content */}
-          {/* {!isSubscribed && !isAdminUser ? ( */}
           {false ? (
             /* TEMPORARY DISABLE AUTH END */
             <div className="max-w-4xl mx-auto text-center py-12">
@@ -523,14 +500,15 @@ function App() {
             </div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* Right Column - Input (now first in DOM, but visually on the right) */}
+              {/* Right Column - Results */}
               <div className="order-2 lg:order-1">
                 <ResultsPanel
                   analysis={analysis}
                   isLoading={isLoading}
                   error={error}
                 />
-                {/* --- زر ومربع السؤال التكميلي --- */}
+
+                {/* Followup Question */}
                 {analysis && !isLoading && !error && (
                   <div className="mt-6">
                     {!showFollowupBox ? (
@@ -566,7 +544,6 @@ function App() {
                         {followupError && <div className="text-red-600 text-sm mt-1">{followupError}</div>}
                       </div>
                     )}
-                    {/* عرض الجواب التكميلي */}
                     {followupAnswer && (
                       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4 text-right whitespace-pre-line text-blue-900">
                         <div className="font-bold mb-2 text-blue-800">الجواب القانوني التكميلي:</div>
@@ -576,10 +553,25 @@ function App() {
                   </div>
                 )}
               </div>
-              {/* Left Column - Input (now visually on the right) */}
+
+              {/* Left Column - Input */}
               <div className="space-y-6 order-1 lg:order-2" dir="rtl">
                 <div className="bg-white rounded-lg shadow p-6">
-                  <h2 className="text-xl font-bold mb-2 text-slate-800">ملخص القضية</h2>
+                  <h2 className="text-xl font-bold mb-2 text-slate-800">تفاصيل القضية</h2>
+
+                  {/* Title Input */}
+                  <div className="mb-4">
+                    <label className="block text-slate-700 mb-2">عنوان القضية (اختياري)</label>
+                    <input
+                      type="text"
+                      className="w-full p-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-right"
+                      placeholder="مثال: نزاع عقاري حول ملكية أرض"
+                      value={caseTitle}
+                      onChange={e => setCaseTitle(e.target.value)}
+                      dir="rtl"
+                    />
+                  </div>
+
                   <label className="block text-slate-700 mb-2">أدخل تفاصيل القضية، الوقائع، والأطراف المعنية</label>
                   <textarea
                     className="w-full h-32 p-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-right"
@@ -637,7 +629,6 @@ function App() {
                 {/* Quick Info */}
                 <div className="bg-amber-50 border border-amber-200 rounded-lg p-4" dir="rtl">
                   <div className="flex items-start gap-3">
-                    {/* Info icon here if needed */}
                     <div>
                       <h4 className="text-sm font-medium text-amber-800 mb-1">إرشادات التحليل</h4>
                       <ul className="text-sm text-amber-700 space-y-1">
@@ -721,7 +712,7 @@ function App() {
                           const reportGenerator = new ImprovedReportGenerator();
                           const reportUrl = await reportGenerator.generateReport(analysis);
                           console.log('Report generated successfully:', reportUrl);
-                          setError(null); // Clear any previous errors
+                          setError(null);
                         } catch (err) {
                           console.error('Report generation error:', err);
                           let errorMessage = 'فشل توليد التقرير. ';
@@ -798,34 +789,12 @@ function App() {
               </div>
               <div className="p-4">
                 <PayPalSubscription
-                  plan={getPlan('محام')!}
+                  plan={getPlan('lawyer')}
                   onSubscriptionSuccess={handleSubscriptionSuccess}
                   onSubscriptionError={handleSubscriptionError}
                 />
-                <div style={{ marginTop: 24, textAlign: 'center' }}>
-                  <p style={{ marginBottom: 12, color: '#1e293b', fontWeight: 'bold' }}>
-                    إذا واجهت صعوبة في الدفع عبر بايبال أو ترغب بالدفع عبر بطاقة بنكية أو وسيلة أخرى، يمكنك التواصل مباشرة مع المطور للتفاوض حول طريقة الدفع.
-                  </p>
-                  <a
-                    href="https://wa.me/212698570282"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      display: 'inline-block',
-                      background: '#25D366',
-                      color: '#fff',
-                      padding: '10px 24px',
-                      borderRadius: 8,
-                      fontWeight: 'bold',
-                      textDecoration: 'none',
-                      fontSize: 16
-                    }}
-                  >
-                    تواصل مع المطور عبر واتساب
-                  </a>
-                </div>
                 {subscriptionError && (
-                  <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded text-red-700 text-sm">
+                  <div className="mt-4 p-3 bg-red-100 text-red-700 rounded text-sm text-right">
                     {subscriptionError}
                   </div>
                 )}
@@ -837,161 +806,27 @@ function App() {
         {/* Admin Login Modal */}
         {showAdminLogin && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg max-w-md w-full">
-              <div className="p-4 border-b border-slate-200">
-                <div className="flex justify-between items-center">
-                  <h2 className="text-lg font-semibold text-slate-800">دخول المدير</h2>
-                  <button
-                    onClick={() => setShowAdminLogin(false)}
-                    className="text-slate-400 hover:text-slate-600"
-                  >
-                    ✕
-                  </button>
-                </div>
-              </div>
-              <div className="p-4">
-                <AdminLogin onLoginSuccess={handleAdminLoginSuccess} />
-              </div>
+            <AdminLogin onLoginSuccess={handleAdminLoginSuccess} onClose={() => setShowAdminLogin(false)} />
+          </div>
+        )}
+
+        {/* Report Diagnostic Modal */}
+        {showDiagnostics && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-center justify-center p-4">
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto relative">
+              <button
+                onClick={() => setShowDiagnostics(false)}
+                className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
+              >
+                ✕
+              </button>
+              <ReportDiagnostics />
             </div>
           </div>
         )}
+
       </div>
     </>
-  );
-}
-
-// ExamplePage for ad campaign
-export function ExamplePage() {
-  // Handler to show the subscribe message
-  function showSubscribeMsg(e: React.MouseEvent<HTMLButtonElement>) {
-    e.preventDefault();
-    alert('يجب عليك الاشتراك للوصول إلى هذه الميزة');
-  }
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50" dir="rtl">
-      <SEO title="مثال - الخبير" description="صفحة مثال توضيحية لمنصة الخبير القانونية." />
-      <Header />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Right Column - ResultsPanel (disabled) */}
-          <div className="order-2 lg:order-1">
-            <div className="bg-white rounded-lg shadow-lg p-6 border border-slate-200">
-              <h3 className="text-lg font-semibold text-slate-800 mb-4">نتيجة التحليل</h3>
-              <div className="text-slate-500">يجب عليك الاشتراك للوصول إلى نتيجة التحليل.</div>
-            </div>
-            {/* Followup question box (disabled) */}
-            <div className="mt-6">
-              <button
-                className="w-full py-3 bg-yellow-100 text-yellow-900 font-bold rounded-lg shadow cursor-not-allowed opacity-60"
-                disabled
-              >
-                🧠 هل التحليل كافٍ؟ أضف سؤالًا
-              </button>
-            </div>
-          </div>
-          {/* Left Column - Input (disabled) */}
-          <div className="space-y-6 order-1 lg:order-2" dir="rtl">
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-xl font-bold mb-2 text-slate-800">ملخص القضية</h2>
-              <label className="block text-slate-700 mb-2">أدخل تفاصيل القضية، الوقائع، والأطراف المعنية</label>
-              <textarea
-                className="w-full h-32 p-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-right"
-                placeholder="يرجى وصف تفاصيل القضية، الأطراف المعنية، الوقائع الأساسية، وأي ظروف ذات صلة…"
-                disabled
-              />
-            </div>
-            {/* Clarifying Questions (static example) */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-2" dir="rtl">
-              <h4 className="text-md font-semibold text-blue-800 mb-2">أسئلة توضيحية مقترحة</h4>
-              <ul className="list-disc list-inside text-blue-900 space-y-1 pr-2">
-                <li>ما هي الوقائع الأساسية للقضية؟</li>
-                <li>من هم الأطراف المعنية؟</li>
-                <li>ما هي الأسئلة القانونية الرئيسية؟</li>
-              </ul>
-            </div>
-            {/* Action Buttons (disabled) */}
-            <div className="flex gap-3" dir="rtl">
-              <button
-                onClick={showSubscribeMsg}
-                className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-blue-800 text-white rounded-lg font-medium transition-all opacity-60 cursor-not-allowed"
-                disabled
-              >
-                حلل القضية
-              </button>
-              <button
-                onClick={showSubscribeMsg}
-                className="px-6 py-3 bg-slate-600 text-white rounded-lg font-medium transition-all opacity-60 cursor-not-allowed"
-                disabled
-              >
-                مسح الكل
-              </button>
-            </div>
-            {/* Quick Info */}
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4" dir="rtl">
-              <div className="flex items-start gap-3">
-                <div>
-                  <h4 className="text-sm font-medium text-amber-800 mb-1">إرشادات التحليل</h4>
-                  <ul className="text-sm text-amber-700 space-y-1">
-                    <li>• قدم وقائع القضية والظروف بتفصيل</li>
-                    <li>• اذكر الأطراف المعنية وأدوارهم</li>
-                    <li>• أضف أي تساؤلات أو إشكالات قانونية</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-            {/* Transcription Section (disabled) */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-xl font-bold mb-2 text-slate-800">نسخ الصوت إلى نص</h2>
-              <input
-                type="file"
-                accept="audio/*"
-                disabled
-                className="hidden"
-              />
-              <button
-                onClick={showSubscribeMsg}
-                className="px-4 py-2 bg-purple-600 text-white rounded-lg font-medium opacity-60 cursor-not-allowed"
-                disabled
-              >
-                تحويل الصوت إلى نص
-              </button>
-            </div>
-            {/* Report Generation Section (disabled) */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-xl font-bold mb-2 text-slate-800">توليد التقرير</h2>
-              <p className="text-sm text-slate-600 mb-4">
-                التقرير يحتوي على النص العربي المحول إلى الحروف اللاتينية للتوافق مع PDF
-              </p>
-              <button
-                onClick={showSubscribeMsg}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium opacity-60 cursor-not-allowed"
-                disabled
-              >
-                توليد تقرير PDF
-              </button>
-            </div>
-          </div>
-        </div>
-      </main>
-      <footer className="bg-white border-t border-slate-200 mt-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-slate-600">
-              © منصة الخبير، من تصميم الطالب الشغوف : مصعب فاطمي.
-            </p>
-            <div className="flex items-center gap-4 text-sm text-slate-500">
-              <span>Professional</span>
-              <span>•</span>
-              <span>Confidential</span>
-              <span>•</span>
-              <span>Secure</span>
-            </div>
-          </div>
-        </div>
-      </footer>
-
-
-    </div>
   );
 }
 
