@@ -409,7 +409,7 @@ function App() {
               تحليل قانوني فوري ودقيق للنوازل، مدعوم بالذكاء الاصطناعي والترسانة القانونية المغربية.
             </p>
           </div>
-          
+
           {false ? (
             /* TEMPORARY DISABLE AUTH END */
             <div className="max-w-4xl mx-auto text-center py-12">
@@ -603,16 +603,7 @@ function App() {
                       dir="rtl"
                     />
                   </div>
-                    <label className="block text-slate-700 mb-2">عنوان القضية (اختياري)</label>
-                    <input
-                      type="text"
-                      className="w-full p-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-right"
-                      placeholder="مثال: نزاع عقاري حول ملكية أرض"
-                      value={caseTitle}
-                      onChange={e => setCaseTitle(e.target.value)}
-                      dir="rtl"
-                    />
-                  </div>
+
 
                   <label className="block text-sm font-semibold text-primary-800 mb-2">الوقائع والتفاصيل</label>
                   <textarea
