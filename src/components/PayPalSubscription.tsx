@@ -44,15 +44,34 @@ const PayPalSubscription: React.FC<PayPalSubscriptionProps> = ({
               plan_id: plan.id
             });
           },
-          onApprove: function (data: any, _actions: any) {
+          onApprove: async function (data: any, _actions: any) {
             // Save subscription data
             const subscriptionData = {
               subscriptionID: data.subscriptionID,
               status: 'ACTIVE',
-              startTime: new Date().toISOString()
+              startTime: new Date().toISOString(),
+              plan_id: plan.id,
+              amount: plan.price
             };
 
-            saveSubscription(subscriptionData);
+            saveSubscription(subscriptionData as any); // Save to local for immediate UI update
+
+            // Save to Appwrite
+            try {
+              const { default: databaseService } = await import('../services/database');
+              await databaseService.createSubscription({
+                paypal_subscription_id: data.subscriptionID,
+                plan_id: plan.id,
+                status: 'active',
+                start_time: new Date().toISOString(),
+                amount: plan.price
+              });
+              console.log('Subscription saved to Appwrite');
+            } catch (err) {
+              console.error('Failed to save subscription to Appwrite', err);
+              // We don't block success flow if DB save fails, but maybe alert user/admin?
+            }
+
             onSubscriptionSuccess(data.subscriptionID);
           },
           onError: function (err: any) {

@@ -26,3 +26,38 @@ body {
   font-weight: 700;
   font-style: normal;
 }
+
+@media print {
+  /* 1. Hide everything */
+  body * {
+    visibility: hidden;
+  }
+
+  /* 2. Show only printable area */
+  #printable-area, #printable-area * {
+    visibility: visible;
+  }
+
+  /* 3. Professional Paper Styling */
+  #printable-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    padding: 20px;
+    font-family: 'Times New Roman', serif;
+    color: black;
+    background: white;
+  }
+
+  /* 4. Hide interactive elements */
+  .no-print {
+    display: none !important;
+  }
+
+  /* 5. A4 Page Settings */
+  @page {
+    margin: 2cm;
+    size: A4;
+  }
+}

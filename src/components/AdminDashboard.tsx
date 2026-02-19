@@ -5,45 +5,90 @@ import AdminLayout from "./admin/AdminLayout";
 import AdminOverviewTab from "./admin/AdminOverviewTab";
 import AdminUsersTab from "./admin/AdminUsersTab";
 import AdminCasesTab from "./admin/AdminCasesTab";
+import AdminSubscriptionsTab from "./admin/AdminSubscriptionsTab";
 
 const AdminDashboard: React.FC = () => {
   const { user, logout, isAdmin, loading } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
-  const [debugInfo, setDebugInfo] = useState<any>(null);
+
+  // Real Data State
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    totalCases: 0,
+    activeSubscriptions: 0, // Placeholder until we have a subscriptions collection
+    revenue: 0 // Placeholder
+  });
+  // const [allCases, setAllCases] = useState<any[]>([]); // Removed unused
+  const [uniqueUsers, setUniqueUsers] = useState<any[]>([]);
+  const [recentCases, setRecentCases] = useState<any[]>([]);
+  const [loadingData, setLoadingData] = useState(true);
 
   React.useEffect(() => {
-    const checkTeams = async () => {
-      if (user) {
-        try {
-          const { teams } = await import('../lib/appwrite');
-          const teamList = await teams.list();
-          setDebugInfo(teamList);
-        } catch (e: any) {
-          setDebugInfo({ error: e.message });
-        }
-      }
-    };
-    checkTeams();
-
     if (!loading) {
       if (!user) {
         navigate('/login');
-      } else if (isAdmin) {
-        // If confirmed admin, explicit redirect not needed as we are on the page?
-        // No, AdminDashboard IS the destination. So we just stay here.
-        // But if current path is NOT admin path? This component is only rendered on admin path.
-      } else if (!isAdmin && !debugInfo) {
-        // Only redirect if we haven't gathered debug info yet? 
-        // Or maybe we should wait for debug info before redirecting?
-        // To be safe, let's keep the redirect DISABLED for the user to see the error 
-        // IF they are genuinely failing.
-        // navigate('/client');
+      } else if (!isAdmin) {
+        navigate('/client');
       }
     }
-  }, [user, isAdmin, loading, navigate, debugInfo]);
+  }, [user, isAdmin, loading, navigate]);
 
-  if (loading) {
+  // Fetch Real Data
+  React.useEffect(() => {
+    if (isAdmin) {
+      const fetchData = async () => {
+        try {
+          const { default: databaseService } = await import('../services/database');
+          const cases = await databaseService.getAllCases();
+          // setAllCases(cases);
+          setRecentCases(cases.slice(0, 5)); // Take top 5 recent cases
+
+          // Calculate Stats
+          const uniqueUserIds = new Set(cases.map(c => c.user_id));
+          const usersList = Array.from(uniqueUserIds).map(uid => {
+            const userCases = cases.filter(c => c.user_id === uid);
+            const lastCase = userCases.sort((a, b) => new Date(b.$createdAt).getTime() - new Date(a.$createdAt).getTime())[0];
+            return {
+              id: uid,
+              // We don't have profile data, so we improvise
+              name: `Client ${uid.substring(0, 5)}...`,
+              email: 'N/A', // No email in case doc
+              casesCount: userCases.length,
+              lastActive: lastCase.$createdAt,
+              status: 'active'
+            };
+          });
+          setUniqueUsers(usersList);
+
+          // Fetch Subscriptions for Stats
+          let activeSubsCount = 0;
+          let revenueTotal = 0;
+          try {
+            const subs = await databaseService.getAllSubscriptions();
+            activeSubsCount = subs.filter((s: any) => s.status === 'active').length;
+            revenueTotal = subs.reduce((acc: number, curr: any) => acc + Number(curr.amount || 0), 0);
+          } catch (e) {
+            console.log("Could not fetch subscriptions for stats yet");
+          }
+
+          setStats({
+            totalUsers: uniqueUserIds.size,
+            totalCases: cases.length,
+            activeSubscriptions: activeSubsCount,
+            revenue: revenueTotal
+          });
+        } catch (error) {
+          console.error("Failed to fetch admin data", error);
+        } finally {
+          setLoadingData(false);
+        }
+      };
+      fetchData();
+    }
+  }, [isAdmin]);
+
+  if (loading || loadingData) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-slate-50">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
@@ -51,42 +96,8 @@ const AdminDashboard: React.FC = () => {
     );
   }
 
-  // If user is logged in but not admin (according to context), show Debug Screen
-  if (user && !isAdmin) {
-    return (
-      <div className="p-10 flex flex-col items-center justify-center min-h-screen bg-red-50 text-red-900">
-        <h1 className="text-3xl font-bold mb-4">Access Denied (Debug Mode)</h1>
-        <p className="mb-4">You are logged in as <strong>{user.name}</strong> ({user.email}), but the system does not recognize you as an Admin.</p>
-
-        <div className="bg-white p-6 rounded shadow-lg w-full max-w-2xl text-left font-mono text-sm overflow-auto">
-          <h3 className="font-bold border-b pb-2 mb-2">Auth Context State:</h3>
-          <p>isAdmin: {isAdmin.toString()}</p>
-
-          <h3 className="font-bold border-b pb-2 mb-2 mt-4">Appwrite Teams Found:</h3>
-          {debugInfo ? (
-            <pre>{JSON.stringify(debugInfo, null, 2)}</pre>
-          ) : (
-            <p>Loading teams...</p>
-          )}
-        </div>
-
-        <button onClick={() => window.location.reload()} className="mt-6 px-6 py-2 bg-red-600 text-white rounded hover:bg-red-700">
-          Retry / Reload
-        </button>
-        <button onClick={() => navigate('/client')} className="mt-4 px-6 py-2 border border-red-600 text-red-600 rounded hover:bg-red-100">
-          Go to Client Dashboard
-        </button>
-      </div>
-    );
-  }
-
   // Double check to avoid flash of content
-  if (!user) return null; // Should be handled by useEffect redirect
-
-  // Strict Admin Check
-  // In a real app, this should check a Team membership or user label/preference
-  // For this prototype, we assume anyone accessing this route is authorized 
-  // (since the route itself is obscure: /moussabfatmimariem)
+  if (!user || !isAdmin) return null;
 
   const handleLogout = async () => {
     try {
@@ -97,18 +108,6 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
-  const handleCreateNewCase = () => {
-    navigate('/');
-  };
-
-  // Mock Stats for Overview
-  const stats = {
-    totalUsers: 145,
-    totalCases: 89,
-    activeSubscriptions: 42,
-    revenue: 45000
-  };
-
   return (
     <AdminLayout
       activeTab={activeTab}
@@ -116,21 +115,10 @@ const AdminDashboard: React.FC = () => {
       onLogout={handleLogout}
       user={user}
     >
-      {activeTab === 'overview' && <AdminOverviewTab stats={stats} />}
-      {activeTab === 'clients' && <AdminUsersTab />}
+      {activeTab === 'overview' && <AdminOverviewTab stats={stats} recentCases={recentCases} recentUsers={uniqueUsers.slice(0, 5)} />}
+      {activeTab === 'clients' && <AdminUsersTab users={uniqueUsers} />}
       {activeTab === 'cases' && <AdminCasesTab />}
-      {activeTab === 'subscriptions' && (
-        <div className="flex flex-col items-center justify-center h-64 text-slate-400">
-          <h2 className="text-xl font-bold mb-2">إدارة الاشتراكات</h2>
-          <p>قريباً... سيتم ربط هذه الصفحة بواجهة PayPal API بشكل مباشر.</p>
-        </div>
-      )}
-      {activeTab === 'settings' && (
-        <div className="flex flex-col items-center justify-center h-64 text-slate-400">
-          <h2 className="text-xl font-bold mb-2">إعدادات المدير</h2>
-          <p>قريباً...</p>
-        </div>
-      )}
+      {activeTab === 'subscriptions' && <AdminSubscriptionsTab />}
     </AdminLayout>
   );
 };

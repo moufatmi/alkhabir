@@ -90,57 +90,83 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({ analysis, isLoading,
 
   return (
     <div className="bg-white rounded-lg shadow-lg p-6 border border-slate-200 space-y-4 print:shadow-none print:border-0" dir="rtl">
-      <div className="flex items-center gap-2 mb-4 justify-between">
-        <div className="flex items-center gap-2">
-          <Scale className="w-5 h-5 text-blue-800" />
-          <h3 className="text-lg font-semibold text-slate-800">نتائج التحليل القانوني</h3>
-        </div>
+
+      {/* Print Trigger Button (Screen Only) */}
+      <div className="flex justify-end mb-4 no-print">
         {analysis && (
           <button
             onClick={handlePrint}
-            className="flex items-center gap-1 bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded text-sm shadow transition print:hidden"
+            className="flex items-center gap-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm shadow transition font-bold"
             title="طباعة النتائج"
           >
             <Printer className="w-4 h-4" />
-            طباعة
+            طباعة التقرير
           </button>
         )}
       </div>
-      <div className="divide-y divide-slate-200">
-        {sections.map(({ key, label }) => {
-          const value = (analysis as any)[key];
-          if (!value) return null;
-          const isArray = Array.isArray(value);
-          return (
-            <div key={key} className="py-2">
-              <button
-                className="flex items-center justify-between w-full text-right focus:outline-none py-2"
-                onClick={() => toggleSection(key)}
-                aria-expanded={!!openSections[key]}
-              >
-                <span className="text-md font-semibold text-slate-800">{label}</span>
-                {openSections[key] ? (
-                  <ChevronUp className="w-4 h-4 text-slate-500" />
-                ) : (
-                  <ChevronDown className="w-4 h-4 text-slate-500" />
-                )}
-              </button>
-              {openSections[key] && (
-                <div className="mt-2 pr-2">
-                  {isArray ? (
-                    <ul className="list-disc list-inside text-slate-700 space-y-1">
-                      {value.map((item: string, idx: number) => (
-                        <li key={idx}>{item}</li>
-                      ))}
-                    </ul>
+
+      <div id="printable-area">
+        {/* Print Header */}
+        <div className="hidden print:block text-center mb-8 border-b pb-4">
+          <h1 className="text-2xl font-bold font-serif mb-2">تقرير المستشار القانوني - الخبير</h1>
+          <p className="text-sm text-gray-500">تم إنشاء هذا التقرير بتاريخ: {new Date().toLocaleDateString('ar-MA')}</p>
+        </div>
+
+        <div className="flex items-center gap-2 mb-4 justify-between print:hidden">
+          <div className="flex items-center gap-2">
+            <Scale className="w-5 h-5 text-blue-800" />
+            <h3 className="text-lg font-semibold text-slate-800">نتائج التحليل القانوني</h3>
+          </div>
+        </div>
+
+        <div className="divide-y divide-slate-200">
+          {sections.map(({ key, label }) => {
+            const value = (analysis as any)[key];
+            if (!value) return null;
+            const isArray = Array.isArray(value);
+            return (
+              <div key={key} className="py-2 break-inside-avoid">
+                <button
+                  className="flex items-center justify-between w-full text-right focus:outline-none py-2 no-print"
+                  onClick={() => toggleSection(key)}
+                  aria-expanded={!!openSections[key]}
+                >
+                  <span className="text-md font-semibold text-slate-800">{label}</span>
+                  {openSections[key] ? (
+                    <ChevronUp className="w-4 h-4 text-slate-500" />
                   ) : (
-                    <p className="text-slate-600">{value}</p>
+                    <ChevronDown className="w-4 h-4 text-slate-500" />
                   )}
-                </div>
-              )}
-            </div>
-          );
-        })}
+                </button>
+                {/* For print, we usually want to see the header static, not as a button. 
+                    So we duplicate title for print or just rely on the button text being visible? 
+                    The button is .no-print, so we need a visible header for print. 
+                */}
+                <h4 className="hidden print:block text-lg font-bold mb-2 mt-4 text-slate-900 border-b border-slate-300 pb-1">{label}</h4>
+
+                {(openSections[key] || true) && ( // Always show logic is handled by handlePrint opening all, but for safety in print we can force true if we detect print mode, but JS doesn't detect print mode easily without listeners. relying on handlePrint is fine.
+                  <div className={`mt-2 pr-2 ${!openSections[key] ? 'hidden print:block' : ''}`}>
+                    {isArray ? (
+                      <ul className="list-disc list-inside text-slate-700 space-y-1">
+                        {value.map((item: string, idx: number) => (
+                          <li key={idx}>{item}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-slate-600 whitespace-pre-wrap leading-relaxed">{value}</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Print Footer */}
+        <div className="hidden print:block mt-12 text-center text-xs text-gray-400 border-t pt-4 break-inside-avoid">
+          <p className="mb-1">هذا التحليل تم بواسطة الذكاء الاصطناعي ويظل رأياً استشاريًا لا يعوض استشارة المحامي المختص.</p>
+          <p dir="ltr">www.alkhabir.ma</p>
+        </div>
       </div>
     </div>
   );

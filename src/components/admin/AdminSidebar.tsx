@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Users, FileText, CreditCard, Settings, LogOut, Shield } from 'lucide-react';
+import { Home, Users, FileText, CreditCard, LogOut, Shield } from 'lucide-react';
 
 interface SidebarProps {
     activeTab: string;
@@ -13,7 +13,6 @@ const AdminSidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, onLogou
         { id: 'clients', label: 'الزبناء', icon: Users },
         { id: 'cases', label: 'جميع القضايا', icon: FileText },
         { id: 'subscriptions', label: 'الاشتراكات', icon: CreditCard },
-        { id: 'settings', label: 'الإعدادات', icon: Settings },
     ];
 
     return (
@@ -35,8 +34,8 @@ const AdminSidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, onLogou
                             key={item.id}
                             onClick={() => setActiveTab(item.id)}
                             className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${isActive
-                                    ? 'bg-red-600 text-white shadow-lg translate-x-1'
-                                    : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                                ? 'bg-red-600 text-white shadow-lg translate-x-1'
+                                : 'text-slate-400 hover:bg-slate-800 hover:text-white'
                                 }`}
                         >
                             <Icon size={20} />

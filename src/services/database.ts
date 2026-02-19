@@ -148,6 +148,65 @@ class DatabaseService {
             throw error;
         }
     }
+
+    // ==========================================
+    // SUBSCRIPTIONS
+    // ==========================================
+
+    /**
+     * Create a new subscription record.
+     * @param data - The subscription data
+     * @returns The created document
+     */
+    async createSubscription(data: any): Promise<Models.Document> {
+        try {
+            // We use a specific collection ID if provided, otherwise we might need to add it to env
+            // For now, let's assume valid ID is available or throw error if not
+            const SUBSCRIPTIONS_COLLECTION_ID = import.meta.env.VITE_APPWRITE_SUBSCRIPTIONS_COLLECTION_ID;
+            if (!SUBSCRIPTIONS_COLLECTION_ID) {
+                throw new Error('VITE_APPWRITE_SUBSCRIPTIONS_COLLECTION_ID is not defined');
+            }
+
+            const user = await authService.getCurrentUser();
+            if (!user) throw new Error('User must be logged in');
+
+            return await databases.createDocument(
+                DB_ID,
+                SUBSCRIPTIONS_COLLECTION_ID,
+                ID.unique(),
+                {
+                    ...data,
+                    user_id: user.$id,
+                    // user_name: user.name, // If schema allows, good for admin view
+                    user_email: user.email,
+                }
+            );
+        } catch (error) {
+            console.error('Appwrite service :: createSubscription :: error', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Get all subscriptions (Admin).
+     * @returns List of subscriptions
+     */
+    async getAllSubscriptions(): Promise<Models.Document[]> {
+        try {
+            const SUBSCRIPTIONS_COLLECTION_ID = import.meta.env.VITE_APPWRITE_SUBSCRIPTIONS_COLLECTION_ID;
+            if (!SUBSCRIPTIONS_COLLECTION_ID) return [];
+
+            const response = await databases.listDocuments(
+                DB_ID,
+                SUBSCRIPTIONS_COLLECTION_ID,
+                [Query.orderDesc('$createdAt')]
+            );
+            return response.documents;
+        } catch (error) {
+            console.error('Appwrite service :: getAllSubscriptions :: error', error);
+            return []; // Return empty on error to avoid crashing UI
+        }
+    }
 }
 
 export const databaseService = new DatabaseService();

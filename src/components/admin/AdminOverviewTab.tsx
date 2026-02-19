@@ -8,9 +8,11 @@ interface AdminOverviewTabProps {
         activeSubscriptions: number;
         revenue: number;
     };
+    recentCases?: any[];
+    recentUsers?: any[];
 }
 
-const AdminOverviewTab: React.FC<AdminOverviewTabProps> = ({ stats }) => {
+const AdminOverviewTab: React.FC<AdminOverviewTabProps> = ({ stats, recentCases = [], recentUsers = [] }) => {
     const cardData = [
         { label: 'إجمالي الزبناء', value: stats.totalUsers, icon: Users, color: 'blue' },
         { label: 'إجمالي القضايا', value: stats.totalCases, icon: FileText, color: 'purple' },
@@ -43,23 +45,25 @@ const AdminOverviewTab: React.FC<AdminOverviewTabProps> = ({ stats }) => {
                 })}
             </div>
 
-            {/* Recent Activity Mockup */}
+            {/* Recent Activity */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-                    <h2 className="font-bold text-lg mb-4 text-slate-800">آخر المستخدمين المسجلين</h2>
+                    <h2 className="font-bold text-lg mb-4 text-slate-800">آخر المستخدمين النشطين</h2>
                     <div className="space-y-4">
-                        {[1, 2, 3].map((i) => (
+                        {recentUsers.length === 0 ? (
+                            <p className="text-slate-400 text-sm">لا يوجد مستخدمين نشطين مؤخراً.</p>
+                        ) : recentUsers.map((user, i) => (
                             <div key={i} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
                                 <div className="flex items-center gap-3">
                                     <div className="w-8 h-8 rounded-full bg-blue-200 flex items-center justify-center text-blue-700 font-bold text-xs">
-                                        U{i}
+                                        {user.name.charAt(7) || 'U'}
                                     </div>
                                     <div>
-                                        <p className="font-bold text-sm text-slate-800">مستخدم جديد {i}</p>
-                                        <p className="text-xs text-slate-500">user{i}@example.com</p>
+                                        <p className="font-bold text-sm text-slate-800">{user.name}</p>
+                                        <p className="text-xs text-slate-500">{user.id}</p>
                                     </div>
                                 </div>
-                                <span className="text-xs text-slate-400">منذ {i} ساعة</span>
+                                <span className="text-xs text-slate-400">{new Date(user.lastActive).toLocaleDateString()}</span>
                             </div>
                         ))}
                     </div>
@@ -68,18 +72,22 @@ const AdminOverviewTab: React.FC<AdminOverviewTabProps> = ({ stats }) => {
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
                     <h2 className="font-bold text-lg mb-4 text-slate-800">آخر القضايا المضافة</h2>
                     <div className="space-y-4">
-                        {[1, 2, 3].map((i) => (
+                        {recentCases.length === 0 ? (
+                            <p className="text-slate-400 text-sm">لا يوجد قضايا حديثة.</p>
+                        ) : recentCases.map((c, i) => (
                             <div key={i} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
                                 <div className="flex items-center gap-3">
                                     <div className="p-2 rounded bg-purple-100 text-purple-600">
                                         <FileText size={16} />
                                     </div>
                                     <div>
-                                        <p className="font-bold text-sm text-slate-800">قضية رقم #2024-{100 + i}</p>
-                                        <p className="text-xs text-green-600 font-medium">مكتملة</p>
+                                        <p className="font-bold text-sm text-slate-800">{c.title}</p>
+                                        <p className={`text-xs font-medium ${c.status === 'completed' ? 'text-green-600' : 'text-orange-600'}`}>
+                                            {c.status === 'completed' ? 'مكتملة' : 'قيد المعالجة'}
+                                        </p>
                                     </div>
                                 </div>
-                                <button className="text-xs text-blue-600 hover:underline">عرض التفاصيل</button>
+                                <span className="text-xs text-slate-400">{new Date(c.$createdAt).toLocaleDateString()}</span>
                             </div>
                         ))}
                     </div>
