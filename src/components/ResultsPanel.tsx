@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, forwardRef, useImperativeHandle } from 'react';
 import { Scale, AlertTriangle, Clock, ChevronDown, ChevronUp, Printer } from 'lucide-react';
 import { LegalAnalysis } from '../types';
 
@@ -6,6 +6,10 @@ interface ResultsPanelProps {
   analysis: LegalAnalysis | null;
   isLoading: boolean;
   error: string | null;
+}
+
+export interface ResultsPanelHandle {
+  print: () => void;
 }
 
 const sections = [
@@ -20,7 +24,7 @@ const sections = [
   { key: 'نوع_القضية', label: 'تصنيف النازلة' },
 ];
 
-export const ResultsPanel: React.FC<ResultsPanelProps> = ({ analysis, isLoading, error }) => {
+export const ResultsPanel = forwardRef<ResultsPanelHandle, ResultsPanelProps>(({ analysis, isLoading, error }, ref) => {
   const [openSections, setOpenSections] = useState<{ [key: string]: boolean }>(() => {
     // Open first section by default
     return { نوع_القضية: true };
@@ -41,6 +45,10 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({ analysis, isLoading,
       window.print();
     }, 300); // Wait for UI to update
   };
+
+  useImperativeHandle(ref, () => ({
+    print: handlePrint
+  }));
 
   if (isLoading) {
     return (
@@ -139,7 +147,6 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({ analysis, isLoading,
                   )}
                 </button>
                 {/* For print, we usually want to see the header static, not as a button. 
-                    So we duplicate title for print or just rely on the button text being visible? 
                     The button is .no-print, so we need a visible header for print. 
                 */}
                 <h4 className="hidden print:block text-lg font-bold mb-2 mt-4 text-slate-900 border-b border-slate-300 pb-1">{label}</h4>
@@ -170,4 +177,4 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({ analysis, isLoading,
       </div>
     </div>
   );
-};
+});

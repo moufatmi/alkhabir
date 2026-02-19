@@ -1,11 +1,4 @@
-import { Client, Account, Databases, Storage, Functions, Teams } from 'appwrite';
-
-/**
- * Appwrite Configuration
- * 
- * Initializes the Appwrite client using environment variables.
- * Exports service instances to be used throughout the application.
- */
+import { Client, Account, Databases, Storage, Teams, Functions } from 'appwrite';
 
 const client = new Client();
 
@@ -23,7 +16,7 @@ if (!endpoint || !projectId) {
 export const account = new Account(client);
 export const databases = new Databases(client);
 export const storage = new Storage(client);
-export const functions = new Functions(client);
 export const teams = new Teams(client);
+export const functions = new Functions(client);
 
-export { client };
+export default client;

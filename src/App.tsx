@@ -1,18 +1,17 @@
 import AuthForm from "./components/AuthForm";
 import { useAuth } from './contexts/AuthContext';
 import React, { useState, useEffect, useRef } from 'react';
-import { ResultsPanel } from './components/ResultsPanel';
+import { ResultsPanel, ResultsPanelHandle } from './components/ResultsPanel';
 import { analyzeLegalCase, askLegalQuestion, suggestClarifyingQuestions } from './services/legalAnalysis';
 import LegalQuestionPage from './components/LegalQuestionPage';
 import { transcribeAudio } from './services/speechToText';
 import { extractTextFromImage } from './services/ocr';
-import { ImprovedReportGenerator } from './services/reportGeneratorImproved';
 import PayPalSubscription from './components/PayPalSubscription';
 import { ReportDiagnostics } from './components/ReportDiagnostics';
-import { hasActiveSubscription, getSubscription, clearSubscription, getPlan } from './services/paypalService';
+import { clearSubscription, getPlan } from './services/paypalService';
 import AdminLogin from './components/AdminLogin';
-import { isAdmin, adminLogout, getCurrentAdmin } from './services/adminAuth';
-import { Link, useNavigate, Route } from "react-router-dom";
+import { adminLogout } from './services/adminAuth';
+import { Link, useNavigate } from "react-router-dom";
 import Header from "./components/Header";
 import { SEO } from './components/SEO';
 import { databaseService } from './services/database';
@@ -58,6 +57,10 @@ function App() {
   const [subscriptionError, setSubscriptionError] = useState<string | null>(null);
   const [isAdminUser, setIsAdminUser] = useState(false);
   const [showAdminLogin, setShowAdminLogin] = useState(false);
+
+  // Ref for ResultsPanel to access print method
+  const resultsPanelRef = useRef<ResultsPanelHandle>(null);
+
   const navigate = useNavigate();
 
   /* TEMPORARY DISABLE AUTH START */
@@ -146,8 +149,11 @@ function App() {
         // Save failed
         if (err.message && err.message.includes('No permissions')) {
           setError('خطأ: لا تملك صلاحية حفظ القضايا. يرجى مراجعة إعدادات الأمان في Appwrite (أضف صلاحية Create للمستخدمين).');
+        } else if (err.message && err.message.includes('Unknown attribute')) {
+          const attrName = err.message.match(/"([^"]+)"/)?.[1] || 'غير معروف';
+          setError(`خطأ: هيكلة قاعدة البيانات غير مكتملة. الحقل "${attrName}" مفقود في Appwrite. يرجى إضافته.`);
         } else {
-          setError('فشل حفظ القضية. يرجى المحاولة مرة أخرى.');
+          setError(`فشل حفظ القضية: ${err.message || 'خطأ غير معروف'}`);
         }
       }
     } finally {
@@ -513,6 +519,7 @@ function App() {
               {/* Right Column - Results */}
               <div className="order-2 lg:order-1">
                 <ResultsPanel
+                  ref={resultsPanelRef}
                   analysis={analysis}
                   isLoading={isLoading}
                   error={error}
@@ -710,38 +717,13 @@ function App() {
                   </p>
                   <div className="flex gap-2">
                     <button
-                      onClick={async () => {
+                      onClick={() => {
                         if (!analysis) {
                           setError('يرجى تحليل القضية أولاً.');
                           return;
                         }
-                        setIsLoading(true);
-                        setError(null);
-                        try {
-                          console.log('Generating report with analysis:', analysis);
-                          const reportGenerator = new ImprovedReportGenerator();
-                          const reportUrl = await reportGenerator.generateReport(analysis);
-                          console.log('Report generated successfully:', reportUrl);
-                          setError(null);
-                        } catch (err) {
-                          console.error('Report generation error:', err);
-                          let errorMessage = 'فشل توليد التقرير. ';
-
-                          if (err instanceof Error) {
-                            if (err.message.includes('Font fetch failed')) {
-                              errorMessage += 'مشكلة في تحميل خط اللغة العربية. تحقق من اتصال الإنترنت.';
-                            } else if (err.message.includes('analysis')) {
-                              errorMessage += 'يرجى تحليل القضية أولاً قبل توليد التقرير.';
-                            } else {
-                              errorMessage += err.message;
-                            }
-                          } else {
-                            errorMessage += 'خطأ غير معروف. يرجى المحاولة مرة أخرى.';
-                          }
-
-                          setError(errorMessage);
-                        } finally {
-                          setIsLoading(false);
+                        if (resultsPanelRef.current) {
+                          resultsPanelRef.current.print();
                         }
                       }}
                       disabled={isLoading || !analysis}
