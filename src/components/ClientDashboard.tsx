@@ -1,49 +1,92 @@
-import React from "react";
-import Header from "./Header";
-import { useAuthState } from "react-firebase-hooks/auth";
-import { auth } from "../firebase";
-import { hasActiveSubscription } from "../services/paypalService";
-import { useUserRole } from "../hooks/useUserRole";
+import React, { useEffect, useState } from "react";
+import { useAuth } from "../contexts/AuthContext";
+import databaseService, { CaseDocument } from "../services/database";
+import { hasActiveSubscription, getSubscription } from "../services/paypalService";
+import DashboardLayout from "./dashboard/DashboardLayout";
+import OverviewTab from "./dashboard/OverviewTab";
+import CasesTab from "./dashboard/CasesTab";
+import SubscriptionTab from "./dashboard/SubscriptionTab";
+import SettingsTab from "./dashboard/SettingsTab";
+import { useNavigate } from "react-router-dom";
 
 const ClientDashboard: React.FC = () => {
-  const [user] = useAuthState(auth);
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState('overview');
+
+  // Data States
+  const [cases, setCases] = useState<CaseDocument[]>([]);
+  const [loadingCases, setLoadingCases] = useState(true);
   const isSubscribed = hasActiveSubscription();
-  const { role } = useUserRole(user ?? null);
+  const subscriptionData = getSubscription();
+
+  useEffect(() => {
+    if (user) {
+      loadCases();
+    }
+  }, [user]);
+
+  const loadCases = async () => {
+    try {
+      if (!user) return;
+      setLoadingCases(true);
+      const userCases = await databaseService.getUserCases(user.$id);
+      setCases(userCases);
+    } catch (err: any) {
+      console.error("Failed to load cases", err);
+    } finally {
+      setLoadingCases(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/login');
+    } catch (error) {
+      console.error("Logout failed", error);
+    }
+  };
+
+  const handleCreateNewCase = () => {
+    // Navigate to main app logic or open modal
+    // For now, redirect to home where the main analysis tool is
+    navigate('/');
+  };
+
+  if (!user) return <div>جاري التحميل...</div>;
+
+  const stats = {
+    totalCases: cases.length,
+    activeSubscription: isSubscribed,
+    lastLogin: new Date().toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+  };
 
   return (
-    <>
-      <Header />
-      <div style={{ maxWidth: 600, margin: '32px auto', background: '#fff', borderRadius: 12, boxShadow: '0 2px 8px #eee', padding: 32 }}>
-        <h1 style={{ fontSize: 28, marginBottom: 16, color: '#1e293b' }}>لوحة تحكم العميل</h1>
-        {user ? (
-          <div style={{ marginBottom: 24 }}>
-            <div><strong>البريد الإلكتروني:</strong> {user.email}</div>
-            <div><strong>معرّف المستخدم:</strong> {user.uid}</div>
-            <div><strong>الدور:</strong> {role === 'admin' ? 'مدير' : 'عميل'}</div>
-          </div>
-        ) : (
-          <div style={{ marginBottom: 24, color: '#f00' }}>لم يتم تسجيل الدخول</div>
-        )}
-        <div style={{ marginBottom: 24 }}>
-          <strong>حالة الاشتراك:</strong> {isSubscribed ? (
-            <span style={{ color: '#16a34a', fontWeight: 'bold' }}>نشط ✅</span>
-          ) : (
-            <span style={{ color: '#f59e42', fontWeight: 'bold' }}>غير نشط ❌</span>
-          )}
-        </div>
-        <div style={{ marginBottom: 24 }}>
-          <button
-            style={{ padding: '10px 24px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 'bold', cursor: 'pointer' }}
-            onClick={() => window.location.href = '/subscription'}
-          >
-            إدارة الاشتراك
-          </button>
-        </div>
-        <div style={{ color: '#64748b', fontSize: 14 }}>
-          إذا واجهت أي مشكلة، يرجى التواصل مع المطور Moussab Fatmi.
-        </div>
-      </div>
-    </>
+    <DashboardLayout
+      activeTab={activeTab}
+      setActiveTab={setActiveTab}
+      onLogout={handleLogout}
+      user={user}
+    >
+      {activeTab === 'overview' && <OverviewTab stats={stats} />}
+      {activeTab === 'cases' && (
+        <CasesTab
+          cases={cases}
+          isLoading={loadingCases}
+          onCreateNew={handleCreateNewCase}
+        />
+      )}
+      {activeTab === 'subscription' && (
+        <SubscriptionTab
+          isSubscribed={isSubscribed}
+          planName={isSubscribed ? 'محامٍ (مفعل)' : 'مجاني'}
+          expiryDate={subscriptionData?.endTime ? new Date(subscriptionData.endTime).toLocaleDateString('ar-EG') : undefined}
+        />
+      )}
+      {activeTab === 'settings' && <SettingsTab user={user} />}
+    </DashboardLayout>
   );
 };
+
 export default ClientDashboard;

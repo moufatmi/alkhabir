@@ -1,6 +1,4 @@
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth, db } from '../firebase';
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import authService from './auth';
 
 // Admin Authentication Service
 export interface AdminUser {
@@ -8,19 +6,16 @@ export interface AdminUser {
   isAdmin: boolean;
 }
 
-const ADMIN_CREDENTIALS = {
-  username: 'moussab',
-  password: 'moussab123'
-};
+const ADMIN_EMAILS = ['moussab@alkhabir.com', 'admin@alkhabir.com', 'moussab.fatmi@gmail.com'];
 
-// Check if user is admin
+// Check if user is admin (Local Storage check)
 export const isAdmin = (): boolean => {
   const adminData = localStorage.getItem('adminUser');
   if (!adminData) return false;
-  
+
   try {
     const user: AdminUser = JSON.parse(adminData);
-    return user.isAdmin && user.username === ADMIN_CREDENTIALS.username;
+    return user.isAdmin;
   } catch {
     return false;
   }
@@ -28,28 +23,40 @@ export const isAdmin = (): boolean => {
 
 // Admin login
 export const adminLogin = async (email: string, password: string) => {
-  // Sign in with Firebase Auth
-  const userCredential = await signInWithEmailAndPassword(auth, email, password);
-  const user = userCredential.user;
-  // Check Firestore for admin role
-  const userDoc = await getDoc(doc(db, 'users', user.uid));
-  if (userDoc.exists() && userDoc.data().role === 'admin') {
+  // Sign in with Appwrite Auth
+  await authService.login({ email, password });
+  const user = await authService.getCurrentUser();
+
+  if (!user) {
+    throw new Error('login_failed');
+  }
+
+  // Check if email is in admin list
+  if (ADMIN_EMAILS.includes(user.email)) {
+    const adminUser: AdminUser = {
+      username: user.name || user.email,
+      isAdmin: true
+    };
+    localStorage.setItem('adminUser', JSON.stringify(adminUser));
     return true;
   }
+
   // Not admin
+  await authService.logout(); // Logout if not admin
   throw new Error('not_admin');
 };
 
 // Admin logout
-export const adminLogout = (): void => {
+export const adminLogout = async (): Promise<void> => {
   localStorage.removeItem('adminUser');
+  await authService.logout();
 };
 
 // Get current admin user
 export const getCurrentAdmin = (): AdminUser | null => {
   const adminData = localStorage.getItem('adminUser');
   if (!adminData) return null;
-  
+
   try {
     return JSON.parse(adminData);
   } catch {
@@ -58,13 +65,7 @@ export const getCurrentAdmin = (): AdminUser | null => {
 };
 
 // Utility: Set user role in Firestore by UID
-export const setUserRole = async (uid: string, role: 'admin' | 'client') => {
-  const userRef = doc(db, 'users', uid);
-  // If the document exists, update; otherwise, create
-  const userDoc = await getDoc(userRef);
-  if (userDoc.exists()) {
-    await updateDoc(userRef, { role });
-  } else {
-    await setDoc(userRef, { role });
-  }
+// Deprecated/Removed as we don't use Firestore.
+export const setUserRole = async (_uid: string, _role: 'admin' | 'client') => {
+  console.warn("setUserRole is not implemented for Appwrite yet.");
 }; 

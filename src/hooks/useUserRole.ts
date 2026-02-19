@@ -1,30 +1,36 @@
 import { useEffect, useState } from "react";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "../firebase";
-import { User } from "firebase/auth";
+import { User } from "../services/auth";
 
 export function useUserRole(user: User | null) {
   const [role, setRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) {
-      setRole(null);
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    getDoc(doc(db, "users", user.uid)).then((docSnap) => {
-      if (docSnap.exists()) {
-        const role = docSnap.data().role || "client";
-        console.log("Fetched role for user", user.uid, ":", role);
-        setRole(role);
-      } else {
-        console.log("No Firestore doc for user", user.uid, "- defaulting to client");
-        setRole("client");
+    const fetchRole = async () => {
+      if (!user) {
+        setRole(null);
+        setLoading(false);
+        return;
       }
-      setLoading(false);
-    });
+
+      setLoading(true);
+      try {
+        // TODO: Fetch role from user preferences or database
+        // For now, hardcode admin check or default to client
+        if (user.email === 'moussab@alkhabir.com') { // Example admin email
+          setRole("admin");
+        } else {
+          setRole("client");
+        }
+      } catch (error) {
+        console.error("Failed to fetch role", error);
+        setRole("client");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRole();
   }, [user]);
 
   return { role, loading };

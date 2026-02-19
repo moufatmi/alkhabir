@@ -1,6 +1,5 @@
-// import AuthForm from "./components/AuthForm";
-import { auth } from "./firebase";
-import { onAuthStateChanged, signOut, User } from "firebase/auth";
+import AuthForm from "./components/AuthForm";
+import { useAuth } from './contexts/AuthContext';
 import React, { useState, useEffect, useRef } from 'react';
 import { ResultsPanel } from './components/ResultsPanel';
 import { analyzeLegalCase, askLegalQuestion, suggestClarifyingQuestions } from './services/legalAnalysis';
@@ -10,7 +9,7 @@ import { extractTextFromImage } from './services/ocr';
 import { ImprovedReportGenerator } from './services/reportGeneratorImproved';
 import PayPalSubscription from './components/PayPalSubscription';
 import { ReportDiagnostics } from './components/ReportDiagnostics';
-import { hasActiveSubscription, getSubscription, clearSubscription } from './services/paypalService';
+import { hasActiveSubscription, getSubscription, clearSubscription, getPlan } from './services/paypalService';
 import AdminLogin from './components/AdminLogin';
 import { isAdmin, adminLogout, getCurrentAdmin } from './services/adminAuth';
 import { Link, useNavigate, Route } from "react-router-dom";
@@ -34,11 +33,7 @@ const userTypes = [
 ];
 
 function App() {
-  /* TEMPORARY DISABLE AUTH START */
-  // const [user, setUser] = useState<User | null>(null);
-  const [user, setUser] = useState<any>({ uid: 'guest', email: 'guest@example.com' }); // Mock user
-  /* TEMPORARY DISABLE AUTH END */
-  const [loading, setLoading] = useState(true);
+  const { user, loading } = useAuth();
   const [caseText, setCaseText] = useState('');
   const [analysis, setAnalysis] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -101,17 +96,7 @@ function App() {
     /* TEMPORARY DISABLE AUTH END */
   }, [role, loadingRole, user]);
 
-  useEffect(() => {
-    /* TEMPORARY DISABLE AUTH START */
-    // const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-    //   setUser(firebaseUser);
-    //   setLoading(false);
-    // });
-    // return () => unsubscribe();
-    setLoading(false); // Force loading to false
-    return () => { };
-    /* TEMPORARY DISABLE AUTH END */
-  }, []);
+
 
   // Automatic clarifying questions disabled to save quota
   // useEffect(() => { ... }, [caseText]);
@@ -284,10 +269,7 @@ function App() {
   };
 
   if (loading) return <div>جاري التحميل...</div>;
-  if (loading) return <div>جاري التحميل...</div>;
-  /* TEMPORARY DISABLE AUTH START */
-  // if (!user) return <AuthForm />;
-  /* TEMPORARY DISABLE AUTH END */
+  if (!user) return <AuthForm />;
 
   if (showLegalQuestion) {
     return (
@@ -816,6 +798,7 @@ function App() {
               </div>
               <div className="p-4">
                 <PayPalSubscription
+                  plan={getPlan('محام')!}
                   onSubscriptionSuccess={handleSubscriptionSuccess}
                   onSubscriptionError={handleSubscriptionError}
                 />

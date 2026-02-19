@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import Header from "./Header";
-import { hasActiveSubscription } from "../services/paypalService";
+import { hasActiveSubscription, getPlan } from "../services/paypalService";
 import PayPalSubscription from "./PayPalSubscription";
 
 const WHATSAPP_LINK = "https://wa.me/212698570282";
@@ -71,10 +71,13 @@ const SubscriptionPage: React.FC = () => {
     content = (
       <>
         <div style={{ marginBottom: 24, textAlign: 'center' }}>
-          <PayPalSubscription
-            onSubscriptionSuccess={() => window.location.reload()}
-            onSubscriptionError={() => alert('حدث خطأ أثناء الاشتراك. يرجى المحاولة لاحقاً.')}
-          />
+          <div style={{ marginBottom: 24, textAlign: 'center' }}>
+            <PayPalSubscription
+              plan={getPlan('محام')!}
+              onSubscriptionSuccess={() => window.location.reload()}
+              onSubscriptionError={() => alert('حدث خطأ أثناء الاشتراك. يرجى المحاولة لاحقاً.')}
+            />
+          </div>
         </div>
         <div style={{ marginTop: 12, textAlign: 'center' }}>
           <p style={{ marginBottom: 12, color: '#1e293b', fontWeight: 'bold' }}>

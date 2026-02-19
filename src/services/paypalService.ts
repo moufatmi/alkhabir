@@ -17,27 +17,45 @@ export interface SubscriptionPlan {
 // Subscription plans configuration
 export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
   {
-    id: 'P-5KC56405L5407803HNBZQTIY',
-    name: 'Pro Monthly',
-    price: '286',
+    id: 'student-plan', // WhatsApp only
+    name: 'طالب',
+    price: '50',
+    currency: 'MAD',
+    interval: 'monthly'
+  },
+  {
+    id: 'judge-plan', // WhatsApp only
+    name: 'قاضٍ متدرب',
+    price: '150',
+    currency: 'MAD',
+    interval: 'monthly'
+  },
+  {
+    id: 'P-5BJ40047EK8744830NGLHTLA',
+    name: 'محامٍ',
+    price: '500',
     currency: 'MAD',
     interval: 'monthly'
   }
 ];
 
+export const getPlan = (key: string) => {
+  return SUBSCRIPTION_PLANS.find(p => p.name.includes(key) || p.id.includes(key));
+};
+
 // Check if user has active subscription
 export const hasActiveSubscription = (): boolean => {
   const subscription = localStorage.getItem('paypalSubscription');
   if (!subscription) return false;
-  
+
   try {
     const subData: PayPalSubscription = JSON.parse(subscription);
     const now = new Date();
     const endTime = subData.endTime ? new Date(subData.endTime) : null;
-    
+
     // If no end time, assume it's active (PayPal handles renewals)
     if (!endTime) return true;
-    
+
     return endTime > now;
   } catch {
     return false;
@@ -53,7 +71,7 @@ export const saveSubscription = (subscriptionData: PayPalSubscription): void => 
 export const getSubscription = (): PayPalSubscription | null => {
   const subscription = localStorage.getItem('paypalSubscription');
   if (!subscription) return null;
-  
+
   try {
     return JSON.parse(subscription);
   } catch {
