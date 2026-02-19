@@ -40,7 +40,19 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
 ];
 
 export const getPlan = (key: string) => {
-  return SUBSCRIPTION_PLANS.find(p => p.name.includes(key) || p.id.includes(key));
+  // Support aliases for easier lookup
+  const aliases: Record<string, string> = {
+    'lawyer': 'محامٍ',
+    'student': 'طالب',
+    'judge': 'قاضٍ'
+  };
+
+  const searchKey = aliases[key.toLowerCase()] || key;
+  return SUBSCRIPTION_PLANS.find(p =>
+    p.name.includes(searchKey) ||
+    p.id.includes(key) ||
+    p.id === key
+  );
 };
 
 // Check if user has active subscription

@@ -20,6 +20,14 @@ const PayPalSubscription: React.FC<PayPalSubscriptionProps> = ({
 }) => {
   const paypalRef = useRef<HTMLDivElement>(null);
 
+  if (!plan) {
+    return (
+      <div className="p-4 text-red-600 bg-red-50 rounded">
+        عذراً، لم يتم العثور على خطة الاشتراك المحددة.
+      </div>
+    );
+  }
+
   useEffect(() => {
     // Load PayPal SDK
     // TODO: Ideally, move SDK loading to a higher level or use a library like @paypal/react-paypal-js
