@@ -8,11 +8,10 @@ import { transcribeAudio } from './services/speechToText';
 import { extractTextFromImage } from './services/ocr';
 import PayPalSubscription from './components/PayPalSubscription';
 import { ReportDiagnostics } from './components/ReportDiagnostics';
-import { clearSubscription, getPlan } from './services/paypalService';
+import { clearSubscription, getPlan, hasActiveSubscription } from './services/paypalService';
 import AdminLogin from './components/AdminLogin';
 import { adminLogout } from './services/adminAuth';
 import { Link, useNavigate } from "react-router-dom";
-import Header from "./components/Header";
 import { SEO } from './components/SEO';
 import { databaseService } from './services/database';
 
@@ -31,7 +30,7 @@ const userTypes = [
 ];
 
 function App() {
-  const { user, loading } = useAuth();
+  const { user, loading, isAdmin } = useAuth();
   const [caseTitle, setCaseTitle] = useState('');
   const [caseText, setCaseText] = useState('');
   const [analysis, setAnalysis] = useState(null);
@@ -63,10 +62,8 @@ function App() {
 
   const navigate = useNavigate();
 
-  /* TEMPORARY DISABLE AUTH START */
-  const role = 'guest';
-  const loadingRole = false;
-  /* TEMPORARY DISABLE AUTH END */
+  // Subscription status derived from paypalService and admin status
+  const isSubscribedFromService = hasActiveSubscription();
 
   const [selectedType, setSelectedType] = useState<'student' | 'judge' | 'lawyer'>('student');
 
@@ -83,9 +80,13 @@ function App() {
 
   // Check subscription and admin status on mount
   useEffect(() => {
-    setIsSubscribed(true); // Force subscribed for guest access
-    setShowSubscriptionModal(false);
-  }, [role, loadingRole, user]);
+    if (user) {
+      const isSub = isSubscribedFromService || isAdmin;
+      setIsSubscribed(isSub);
+      // Only show modal if not subscribed and not admin
+      setShowSubscriptionModal(!isSub);
+    }
+  }, [user, isAdmin, isSubscribedFromService]);
 
 
   const handleAnalyzeCase = async () => {
@@ -316,7 +317,6 @@ function App() {
   return (
     <>
       <SEO />
-      <Header />
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50" dir="rtl">
         {/* Header */}
         <header className="bg-white shadow-sm border-b border-slate-200">
@@ -422,8 +422,7 @@ function App() {
             </p>
           </div>
 
-          {false ? (
-            /* TEMPORARY DISABLE AUTH END */
+          {!isSubscribed && !isAdminUser ? (
             <div className="max-w-4xl mx-auto text-center py-12">
               <div className="bg-white rounded-lg shadow-lg p-8">
                 <h2 className="text-3xl font-bold text-slate-800 mb-4">مرحباً بك في منصة الخبير</h2>
