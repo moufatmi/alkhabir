@@ -7,7 +7,10 @@ const projectId = import.meta.env.VITE_APPWRITE_PROJECT_ID;
 
 if (!endpoint || !projectId) {
     console.error('Appwrite configuration missing. Please check your .env file.');
+    console.log('Endpoint:', endpoint);
+    console.log('Project ID:', projectId);
 } else {
+    console.log('Appwrite Config Loaded:', { endpoint, projectId });
     client
         .setEndpoint(endpoint)
         .setProject(projectId);
