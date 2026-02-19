@@ -77,7 +77,7 @@ class AuthService {
     async loginWithGoogle(): Promise<void> {
         try {
             // Configure redirect URLs - adjust these based on your environment
-            const successUrl = `${window.location.origin}/dashboard`;
+            const successUrl = `${window.location.origin}/client`;
             const failureUrl = `${window.location.origin}/login`;
 
             account.createOAuth2Session(

@@ -1,16 +1,11 @@
 import React from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { auth } from "../firebase";
+import { Link } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
 // import { useAuthState } from "react-firebase-hooks/auth";
 // import { useUserRole } from "../hooks/useUserRole";
 
 const Header: React.FC = () => {
-  /* TEMPORARY DISABLE AUTH START */
-  // const [user] = useAuthState(auth);
-  // const { role } = useUserRole(user ?? null);
-  const user = { uid: 'guest' }; // Mock user
-  const role = 'guest';
-  /* TEMPORARY DISABLE AUTH END */
+  const { user, isAdmin } = useAuth();
 
   return (
     <header className="bg-white/90 backdrop-blur-md shadow-sm border-b border-primary-100 sticky top-0 z-50 transition-all duration-300">
@@ -30,9 +25,17 @@ const Header: React.FC = () => {
         {/* Navigation */}
         <nav className="hidden md:flex items-center gap-6">
           <Link to="/" className="text-slate-600 hover:text-primary-700 font-medium transition-colors text-sm">الرئيسية</Link>
-          {/* 
-          Auth links commented out as in original file
-          */}
+          {user && (
+            <Link
+              to={isAdmin ? "/moussabfatmimariem" : "/client"}
+              className="text-slate-600 hover:text-primary-700 font-medium transition-colors text-sm"
+            >
+              لوحة التحكم
+            </Link>
+          )}
+          {!user && (
+            <Link to="/login" className="text-slate-600 hover:text-primary-700 font-medium transition-colors text-sm">تسجيل الدخول</Link>
+          )}
         </nav>
       </div>
     </header>

@@ -343,6 +343,12 @@ function App() {
               <div className="flex items-center gap-2">
                 {isAdminUser && (
                   <>
+                    <Link
+                      to="/moussabfatmimariem"
+                      className="ml-2 px-3 py-1 text-xs bg-red-100 hover:bg-red-200 rounded text-red-900 font-bold"
+                    >
+                      لوحة المدير
+                    </Link>
                     <button
                       onClick={() => setShowLegalQuestion(true)}
                       className="ml-2 px-3 py-1 text-xs bg-blue-200 hover:bg-blue-300 rounded text-blue-900 font-bold"
@@ -362,6 +368,12 @@ function App() {
                 )}
                 {isSubscribed && !isAdminUser && (
                   <>
+                    <Link
+                      to="/client"
+                      className="ml-2 px-3 py-1 text-xs bg-slate-200 hover:bg-slate-300 rounded text-slate-900 font-bold"
+                    >
+                      لوحة التحكم
+                    </Link>
                     <button
                       onClick={() => setShowLegalQuestion(true)}
                       className="ml-2 px-3 py-1 text-xs bg-blue-200 hover:bg-blue-300 rounded text-blue-900 font-bold"

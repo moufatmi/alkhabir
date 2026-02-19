@@ -1,7 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { HelmetProvider } from 'react-helmet-async';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import App, { ExamplePage } from './App';
 import ClientDashboard from './components/ClientDashboard';
 import AdminDashboard from './components/AdminDashboard';
@@ -19,6 +19,8 @@ createRoot(document.getElementById('root')!).render(
             <Route path="/" element={<App />} />
             <Route path="/login" element={<AuthForm />} />
             <Route path="/client" element={<ClientDashboard />} />
+            <Route path="/dashboard" element={<Navigate to="/client" replace />} />
+            <Route path="/Dashboard" element={<Navigate to="/client" replace />} />
             <Route path="/subscription" element={<SubscriptionPage />} />
             <Route path="/moussabfatmimariem" element={<AdminDashboard />} />
             <Route path="/example" element={<ExamplePage />} />
