@@ -139,7 +139,17 @@ function App() {
       ]);
     } catch (err: any) {
       console.error('Analysis failed:', err);
-      setError('حدث خطأ أثناء التحليل. تم حفظ المسودة في حسابك.');
+      if (caseId) {
+        // Save succeeded, but analysis failed
+        setError('حدث خطأ أثناء التحليل. تم حفظ المسودة في حسابك.');
+      } else {
+        // Save failed
+        if (err.message && err.message.includes('No permissions')) {
+          setError('خطأ: لا تملك صلاحية حفظ القضايا. يرجى مراجعة إعدادات الأمان في Appwrite (أضف صلاحية Create للمستخدمين).');
+        } else {
+          setError('فشل حفظ القضية. يرجى المحاولة مرة أخرى.');
+        }
+      }
     } finally {
       setIsLoading(false);
     }
@@ -827,6 +837,41 @@ function App() {
 
       </div>
     </>
+  );
+}
+
+export function ExamplePage() {
+  const exampleAnalysis = {
+    "نوع_القضية": "مدني - عقاري",
+    "الوقائع_الجوهرية": [
+      "شراء المدعي لشقة في طور البناء",
+      "تأخر المنعش العقاري في التسليم لمدة سنتين",
+      "وجود شرط جزائي في العقد"
+    ],
+    "التكييف_القانوني": [
+      "هل يحق للمدعي فسخ العقد؟",
+      "هل يستحق التعويض عن التأخير؟"
+    ],
+    "النصوص_القانونية_ذات_الصلة": [
+      "الفصل 254 من قانون الالتزامات والعقود",
+      "قانون 44.00 المتعلق ببيع العقار في طور الإنجاز"
+    ],
+    "الاجتهاد_القضائي": "قرار محكمة النقض عدد 123 لسنة 2020...",
+    "الخلاصة": "يحق للمدعي المطالبة بالفسخ والتعويض."
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 p-8" dir="rtl">
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-3xl font-bold mb-6 text-center text-slate-800">نموذج تحليل قانوني</h1>
+        <ResultsPanel analysis={exampleAnalysis} isLoading={false} error={null} />
+        <div className="mt-8 text-center">
+          <Link to="/" className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-bold">
+            العودة للصفحة الرئيسية
+          </Link>
+        </div>
+      </div>
+    </div>
   );
 }
 
