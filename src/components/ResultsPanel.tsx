@@ -1,4 +1,4 @@
-import React, { useState, forwardRef, useImperativeHandle } from 'react';
+import { useState, forwardRef, useImperativeHandle } from 'react';
 import { Scale, AlertTriangle, Clock, ChevronDown, ChevronUp, Printer } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { LegalAnalysis } from '../types';

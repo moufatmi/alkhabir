@@ -63,6 +63,9 @@ function App() {
   // Ref for ResultsPanel to access print method
   const resultsPanelRef = useRef<ResultsPanelHandle>(null);
 
+  // Subscription status derived from paypalService and admin status
+  const isSubscribedFromService = hasActiveSubscription();
+
   const [selectedType, setSelectedType] = useState<'student' | 'judge' | 'lawyer'>('student');
 
   // Load history from localStorage on mount
@@ -165,30 +168,9 @@ function App() {
     if (!caseText.trim()) return;
     setIsQuestionsLoading(true);
     suggestClarifyingQuestions(caseText)
-      .then((result: any) => {
-        let questions: string[] = [];
-        let rawText = '';
-        if (typeof result === 'string') {
-          questions = result.split(/\n|\r/).map((q: string) => q.trim()).filter((q: string) => q.length > 0);
-        } else if (result && typeof result === 'object') {
-          const resObj = result as any;
-          const arrProp = Object.values(resObj).find((v) => Array.isArray(v));
-          if (arrProp) {
-            questions = arrProp as string[];
-          } else if (resObj.raw && typeof resObj.raw === 'string') {
-            rawText = resObj.raw.trim();
-            questions = resObj.raw
-              .split(/\n|\r/)
-              .map((line: string) => line.trim())
-              .filter((line: string) => /^\d+\.\s*(\*\*)?/.test(line))
-              .map((line: string) => line.replace(/^\d+\.\s*(\*\*)?\s*/, '').replace(/\*\*$/, '').trim());
-            if (questions.length === 0) {
-              questions = [rawText];
-            }
-          }
-        }
+      .then((questions) => {
         setClarifyingQuestions(questions);
-        setClarifyingQuestionsRaw(rawText);
+        setClarifyingQuestionsRaw('');
       })
       .catch(() => setClarifyingQuestions([]))
       .finally(() => setIsQuestionsLoading(false));
@@ -246,7 +228,7 @@ function App() {
     }
   };
 
-  const handleSubscriptionSuccess = () => {
+  const handleSubscriptionSuccess = (subscriptionId?: string) => {
     setIsSubscribed(true);
     setShowSubscriptionModal(false);
     setSubscriptionError(null);
