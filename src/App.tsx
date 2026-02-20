@@ -11,7 +11,7 @@ import { ReportDiagnostics } from './components/ReportDiagnostics';
 import { clearSubscription, getPlan, hasActiveSubscription } from './services/paypalService';
 import AdminLogin from './components/AdminLogin';
 import { adminLogout } from './services/adminAuth';
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { SEO } from './components/SEO';
 import { databaseService } from './services/database';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -60,52 +60,80 @@ function App() {
   const [isAdminUser, setIsAdminUser] = useState(false);
   const [showAdminLogin, setShowAdminLogin] = useState(false);
 
+  // Ref for ResultsPanel to access print method
   const resultsPanelRef = useRef<ResultsPanelHandle>(null);
+
+  // Subscription status derived from paypalService and admin status
   const isSubscribedFromService = hasActiveSubscription();
+
   const [selectedType, setSelectedType] = useState<'student' | 'judge' | 'lawyer'>('student');
 
+  // Load history from localStorage on mount
   useEffect(() => {
     const stored = localStorage.getItem('caseHistory');
     if (stored) setHistory(JSON.parse(stored));
   }, []);
 
+  // Save history to localStorage when it changes
   useEffect(() => {
     localStorage.setItem('caseHistory', JSON.stringify(history));
   }, [history]);
 
+  // Check subscription and admin status on mount
   useEffect(() => {
     if (user) {
       const isSub = isSubscribedFromService || isAdmin;
       setIsSubscribed(isSub);
+      // Only show modal if not subscribed and not admin
       setShowSubscriptionModal(!isSub);
     }
   }, [user, isAdmin, isSubscribedFromService]);
+
 
   const handleAnalyzeCase = async () => {
     if (!caseText.trim()) {
       setError('المرجو إدخال تفاصيل القضية.');
       return;
     }
+
+    // Ensure user is logged in
     if (!user) {
       setError('يجيب عليك تسجيل الدخول لحفظ وتحليل القضية.');
       return;
     }
+
+    // Auto-generate title if missing
     const finalTitle = caseTitle.trim() || `قضية ${new Date().toLocaleDateString('ar-MA')} - ${caseText.slice(0, 20)}...`;
+
     setIsLoading(true);
     setError(null);
-    setAnalysis(null);
+    setAnalysis(null); // Clear previous
+
     let caseId: string | null = null;
+
     try {
+      // Step 1: Save Draft (Pending)
+      console.log('Saving draft case...');
       const draftCase = await databaseService.createCase({
         title: finalTitle,
         description: caseText,
       });
       caseId = draftCase.$id;
+      console.log('Draft case saved with ID:', caseId);
+
+      // Step 2: Perform Analysis
+      console.log('Analyzing case...');
       const result = await analyzeLegalCase(caseText);
       setAnalysis(result);
+
+      // Step 3: Update Record (Completed)
       if (caseId) {
+        console.log('Updating case with analysis result...');
         await databaseService.updateCaseAnalysis(caseId, JSON.stringify(result));
+        console.log('Case updated successfully.');
       }
+
+      // Add to history (UI only)
       setHistory([
         {
           id: Date.now(),
@@ -116,10 +144,20 @@ function App() {
         ...history,
       ]);
     } catch (err: any) {
+      console.error('Analysis failed:', err);
       if (caseId) {
+        // Save succeeded, but analysis failed
         setError('حدث خطأ أثناء التحليل. تم حفظ المسودة في حسابك.');
       } else {
-        setError(err.message || 'فشل حفظ القضية');
+        // Save failed
+        if (err.message && err.message.includes('No permissions')) {
+          setError('خطأ: لا تملك صلاحية حفظ القضايا. يرجى مراجعة إعدادات الأمان في Appwrite (أضف صلاحية Create للمستخدمين).');
+        } else if (err.message && err.message.includes('Unknown attribute')) {
+          const attrName = err.message.match(/"([^"]+)"/)?.[1] || 'غير معروف';
+          setError(`خطأ: هيكلة قاعدة البيانات غير مكتملة. الحقل "${attrName}" مفقود في Appwrite. يرجى إضافته.`);
+        } else {
+          setError(`فشل حفظ القضية: ${err.message || 'خطأ غير معروف'}`);
+        }
       }
     } finally {
       setIsLoading(false);
@@ -146,20 +184,25 @@ function App() {
   };
 
   const handleTranscribeAudio = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    console.log('handleTranscribeAudio called', event);
     const file = event.target.files?.[0];
     if (!file) {
       alert('الرجاء اختيار ملف صوتي');
       return;
     }
+
     setIsTranscribing(true);
     try {
       const transcription = await transcribeAudio(file);
+      console.log('Received transcription:', transcription);
       setTranscriptionResult(transcription);
     } catch (error) {
       alert('حدث خطأ أثناء تحويل الصوت إلى نص');
     } finally {
       setIsTranscribing(false);
-      if (event.target) event.target.value = '';
+      if (event.target) {
+        event.target.value = '';
+      }
     }
   };
 
@@ -170,6 +213,7 @@ function App() {
     setFollowupAnswer(null);
     try {
       const res = await askLegalQuestion(followupQuestion);
+      // إذا كان الجواب كائن فيه raw أو نص مباشر
       if (typeof res === 'string') {
         setFollowupAnswer(res);
       } else if (res && typeof res === 'object' && res.raw) {
@@ -184,7 +228,7 @@ function App() {
     }
   };
 
-  const handleSubscriptionSuccess = () => {
+  const handleSubscriptionSuccess = (subscriptionId?: string) => {
     setIsSubscribed(true);
     setShowSubscriptionModal(false);
     setSubscriptionError(null);
@@ -204,6 +248,7 @@ function App() {
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
     setIsOcrLoading(true);
     try {
       const text = await extractTextFromImage(file);
@@ -212,6 +257,7 @@ function App() {
       setError(err.message || 'فشل تحويل الصورة إلى نص');
     } finally {
       setIsOcrLoading(false);
+      // Reset input
       e.target.value = '';
     }
   };
@@ -228,17 +274,16 @@ function App() {
     setShowSubscriptionModal(true);
   };
 
-  if (loading) return <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-100">جاري التحميل...</div>;
+  if (loading) return <div>جاري التحميل...</div>;
   if (!user) return <AuthForm />;
 
   if (showLegalQuestion) {
     return (
-      <div className="min-h-screen bg-slate-950">
-        <ParticlesBackground />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <button
             onClick={() => setShowLegalQuestion(false)}
-            className="mb-6 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg font-medium transition-colors"
+            className="mb-6 px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-lg font-medium"
           >
             ⬅ العودة للتحليل الرئيسي
           </button>
@@ -252,67 +297,94 @@ function App() {
     <>
       <SEO />
       <ParticlesBackground />
-      <div className="min-h-screen relative overflow-hidden bg-slate-950" dir="rtl">
+      <div className="min-h-screen relative overflow-hidden" dir="rtl">
         {/* Header */}
-        <header className="glass border-b border-white/5 sticky top-0 z-50">
+        <header className="bg-white shadow-sm border-b border-slate-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex flex-row-reverse items-center justify-between h-16">
               {/* Right: Logo and Title */}
               <div className="flex items-center gap-3">
-                <img src="/logo.svg" alt="Scales of Justice" className="w-12 h-12" />
+                <img
+                  src="/logo.svg"
+                  alt="Scales of Justice"
+                  className="w-12 h-12"
+                />
                 <div>
-                  <h1 className="text-xl font-bold text-slate-100 aref-ruqaa-bold glow-blue">الخبير | Alkhabir</h1>
-                  <p className="text-sm text-slate-400 aref-ruqaa-regular">المساعد الذكي للقانوني</p>
+                  <h1 className="text-xl font-bold text-slate-800 aref-ruqaa-bold">الخبير | Alkhabir</h1>
+                  <p className="text-sm text-slate-600 aref-ruqaa-regular">المساعد الذكي للقانوني  </p>
                 </div>
               </div>
-
               {/* Center: System Status */}
               <div className="hidden md:flex items-center gap-2 text-slate-500">
                 <motion.div
                   animate={{ scale: [1, 1.5, 1], opacity: [0.5, 1, 0.5] }}
                   transition={{ duration: 2, repeat: Infinity }}
                   className="w-2 h-2 bg-blue-500 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.8)]"
-                />
+                ></motion.div>
                 <span className="text-xs font-medium tracking-widest uppercase opacity-70">AI Core Active</span>
               </div>
-
               {/* Left: Action Buttons */}
               <div className="flex items-center gap-2">
                 {isAdminUser && (
                   <>
-                    <Link to="/moussabfatmimariem" className="ml-2 px-3 py-1 text-xs bg-red-900/50 hover:bg-red-800 rounded text-red-100 font-bold border border-red-500/30">
+                    <Link
+                      to="/moussabfatmimariem"
+                      className="ml-2 px-3 py-1 text-xs bg-red-100 hover:bg-red-200 rounded text-red-900 font-bold"
+                    >
                       لوحة المدير
                     </Link>
-                    <button onClick={() => setShowLegalQuestion(true)} className="ml-2 px-3 py-1 text-xs bg-blue-900/50 hover:bg-blue-800 rounded text-blue-100 font-bold border border-blue-500/30">
+                    <button
+                      onClick={() => setShowLegalQuestion(true)}
+                      className="ml-2 px-3 py-1 text-xs bg-blue-200 hover:bg-blue-300 rounded text-blue-900 font-bold"
+                    >
                       الأسئلة القانونية
                     </button>
-                    <span className="px-2 py-1 text-xs bg-purple-900/50 text-purple-100 rounded font-bold border border-purple-500/30">
+                    <span className="px-2 py-1 text-xs bg-purple-200 text-purple-900 rounded font-bold">
                       المدير
                     </span>
-                    <button onClick={handleAdminLogout} className="px-3 py-1 text-xs bg-slate-800 hover:bg-slate-700 rounded text-slate-100 font-bold border border-white/10">
+                    <button
+                      onClick={handleAdminLogout}
+                      className="px-3 py-1 text-xs bg-red-200 hover:bg-red-300 rounded text-red-900 font-bold"
+                    >
                       تسجيل الخروج
                     </button>
                   </>
                 )}
                 {isSubscribed && !isAdminUser && (
                   <>
-                    <Link to="/client" className="ml-2 px-3 py-1 text-xs bg-slate-800 hover:bg-slate-700 rounded text-slate-100 font-bold border border-white/10">
+                    <Link
+                      to="/client"
+                      className="ml-2 px-3 py-1 text-xs bg-slate-200 hover:bg-slate-300 rounded text-slate-900 font-bold"
+                    >
                       لوحة التحكم
                     </Link>
-                    <button onClick={() => setShowLegalQuestion(true)} className="ml-2 px-3 py-1 text-xs bg-blue-900/50 hover:bg-blue-800 rounded text-blue-100 font-bold border border-blue-500/30">
+                    <button
+                      onClick={() => setShowLegalQuestion(true)}
+                      className="ml-2 px-3 py-1 text-xs bg-blue-200 hover:bg-blue-300 rounded text-blue-900 font-bold"
+                    >
                       الأسئلة القانونية
                     </button>
-                    <button onClick={handleLogout} className="px-3 py-1 text-xs bg-red-900/50 hover:bg-red-800 rounded text-red-100 font-bold border border-red-500/30">
+                    <button
+                      onClick={handleLogout}
+                      className="px-3 py-1 text-xs bg-red-200 hover:bg-red-300 rounded text-red-900 font-bold"
+                    >
                       إلغاء الاشتراك
                     </button>
                   </>
                 )}
                 {!isSubscribed && !isAdminUser && (
                   <>
-                    <button onClick={() => setShowSubscriptionModal(true)} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-all shadow-lg shadow-blue-500/20">
+                    <button
+                      onClick={() => setShowSubscriptionModal(true)}
+                      className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium"
+                    >
                       اشترك الآن
                     </button>
-                    <button onClick={() => window.location.href = '/example'} className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg font-medium transition-all border border-white/10 ml-2">
+                    <button
+                      onClick={() => window.location.href = '/example'}
+                      className="px-8 py-3 bg-gray-200 hover:bg-gray-300 text-blue-900 rounded-lg font-medium text-lg ml-4"
+                      style={{ marginRight: 12 }}
+                    >
                       شاهد شكل المنصة
                     </button>
                   </>
@@ -324,68 +396,127 @@ function App() {
 
         {/* Main Content */}
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
+          {/* Hero Section */}
           <div className="text-center mb-12 animate-fade-in">
-            <h1 className="text-4xl md:text-5xl font-bold font-heading text-slate-100 mb-4 leading-tight">
-              <TextDecode text="مستشارك القانوني الذكي" className="glow-blue" /> <span className="text-blue-400 font-extrabold italic">الخبير</span>
+            <h1 className="text-4xl md:text-5xl font-bold font-heading text-slate-900 mb-4 leading-tight">
+              <TextDecode text="مستشارك القانوني الذكي" className="glow-blue" /> <span className="text-blue-600 font-extrabold italic">الخبير</span>
             </h1>
-            <p className="text-lg text-slate-400 max-w-2xl mx-auto leading-relaxed">
+            <p className="text-lg text-slate-600 max-w-2xl mx-auto leading-relaxed">
               تحليل قانوني فوري ودقيق للنوازل، مدعوم بالذكاء الاصطناعي والترسانة القانونية المغربية.
             </p>
           </div>
 
           {!isSubscribed && !isAdminUser ? (
             <div className="max-w-4xl mx-auto text-center py-12">
-              <div className="glass rounded-2xl shadow-2xl p-8 border border-white/5 space-y-8">
-                <div className="space-y-4">
-                  <h2 className="text-3xl font-bold text-slate-100 glow-blue">مرحباً بك في منصة الخبير</h2>
-                  <p className="text-lg text-slate-400">منصة الخبير هي المساعد الذكي للقانوني. اشترك الآن للوصول إلى جميع الميزات.</p>
-                </div>
-
-                <div className="flex flex-wrap justify-center gap-4">
+              <div className="bg-white rounded-lg shadow-lg p-8">
+                <h2 className="text-3xl font-bold text-slate-800 mb-4">مرحباً بك في منصة الخبير</h2>
+                <p className="text-lg text-slate-600 mb-6">
+                  منصة الخبير هي المساعد الذكي للقانوني . اشترك الآن للوصول إلى جميع الميزات.
+                </p>
+                <div style={{ display: 'flex', justifyContent: 'center', gap: 12, marginBottom: 24 }}>
                   {userTypes.map(type => (
                     <button
                       key={type.key}
-                      onClick={() => setSelectedType(type.key as any)}
-                      className={`px-6 py-3 rounded-xl font-bold transition-all border ${selectedType === type.key
-                          ? 'bg-blue-600 border-blue-400 text-white shadow-lg shadow-blue-500/20'
-                          : 'bg-slate-900/50 border-white/10 text-slate-400 hover:border-blue-500/30'
-                        }`}
+                      onClick={() => setSelectedType(type.key as 'student' | 'judge' | 'lawyer')}
+                      style={{
+                        padding: '10px 20px',
+                        borderRadius: 8,
+                        border: selectedType === type.key ? '2px solid #2563eb' : '1px solid #ddd',
+                        background: selectedType === type.key ? '#2563eb' : '#f3f4f6',
+                        color: selectedType === type.key ? '#fff' : '#1e293b',
+                        fontWeight: 'bold',
+                        fontSize: 16,
+                        cursor: 'pointer'
+                      }}
                     >
                       {type.label} ({type.price} درهم)
                     </button>
                   ))}
                 </div>
-
-                <div className="p-6 bg-slate-900/40 rounded-2xl border border-white/5">
-                  {selectedType === 'student' && (
-                    <div className="space-y-4">
-                      <p className="text-slate-300">للاستفادة من اشتراك الطلبة (50 درهم شهرياً)، يرجى التواصل معنا عبر واتساب للتحقق.</p>
-                      <a href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold transition-all">
+                {/* Payment/Contact logic */}
+                {selectedType === 'student' && (
+                  <div style={{ marginTop: 24, textAlign: 'center' }}>
+                    <p style={{ marginBottom: 12, color: '#1e293b', fontWeight: 'bold' }}>
+                      للاستفادة من اشتراك الطلبة (50 درهم شهرياً)، يرجى التواصل معنا عبر واتساب للتحقق من وضعك كطالب والتفاوض حول طريقة الدفع.
+                    </p>
+                    <a
+                      href={WHATSAPP_LINK}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        display: 'inline-block',
+                        background: '#25D366',
+                        color: '#fff',
+                        padding: '10px 24px',
+                        borderRadius: 8,
+                        fontWeight: 'bold',
+                        textDecoration: 'none',
+                        fontSize: 16
+                      }}
+                    >
+                      تواصل عبر واتساب
+                    </a>
+                  </div>
+                )}
+                {selectedType === 'judge' && (
+                  <div style={{ marginTop: 24, textAlign: 'center' }}>
+                    <p style={{ marginBottom: 12, color: '#1e293b', fontWeight: 'bold' }}>
+                      للاستفادة من اشتراك القضاة المتدربين (150 درهم شهرياً)، يرجى التواصل معنا عبر واتساب للتحقق من وضعك كقاضٍ متدرب والتفاوض حول طريقة الدفع.
+                    </p>
+                    <a
+                      href={WHATSAPP_LINK}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        display: 'inline-block',
+                        background: '#25D366',
+                        color: '#fff',
+                        padding: '10px 24px',
+                        borderRadius: 8,
+                        fontWeight: 'bold',
+                        textDecoration: 'none',
+                        fontSize: 16
+                      }}
+                    >
+                      تواصل عبر واتساب
+                    </a>
+                  </div>
+                )}
+                {selectedType === 'lawyer' && (
+                  <>
+                    <button
+                      onClick={() => setShowSubscriptionModal(true)}
+                      className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium text-lg"
+                    >
+                      اشترك الآن - 500 MAD/شهر
+                    </button>
+                    <div style={{ marginTop: 24, textAlign: 'center' }}>
+                      <p style={{ marginBottom: 12, color: '#1e293b', fontWeight: 'bold' }}>
+                        اشتراك المحامين (500 درهم شهرياً): يمكنك الدفع مباشرة عبر بايبال أو البطاقة البنكية، أو التواصل معنا عبر واتساب إذا واجهت صعوبة في الدفع.
+                      </p>
+                      <a
+                        href={WHATSAPP_LINK}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          display: 'inline-block',
+                          background: '#25D366',
+                          color: '#fff',
+                          padding: '10px 24px',
+                          borderRadius: 8,
+                          fontWeight: 'bold',
+                          textDecoration: 'none',
+                          fontSize: 16
+                        }}
+                      >
                         تواصل عبر واتساب
                       </a>
                     </div>
-                  )}
-                  {selectedType === 'judge' && (
-                    <div className="space-y-4">
-                      <p className="text-slate-300">للاستفادة من اشتراك القضاة المتدربين (150 درهم شهرياً)، يرجى التواصل معنا عبر واتساب.</p>
-                      <a href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold transition-all">
-                        تواصل عبر واتساب
-                      </a>
-                    </div>
-                  )}
-                  {selectedType === 'lawyer' && (
-                    <div className="space-y-6">
-                      <button onClick={() => setShowSubscriptionModal(true)} className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-lg shadow-lg shadow-blue-500/20 transition-all active:scale-95">
-                        اشترك الآن - 500 MAD/شهر
-                      </button>
-                      <div className="flex items-center gap-4 justify-center text-sm text-slate-500">
-                        <span>أو</span>
-                        <a href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer" className="text-green-500 hover:underline">تواصل معنا عبر واتساب</a>
-                      </div>
-                    </div>
-                  )}
+                  </>
+                )}
+                <div className="mt-6 text-sm text-slate-500">
+                  الاشتراك قابل للإلغاء في أي وقت
                 </div>
-                <p className="text-xs text-slate-500 uppercase tracking-widest">الاشتراك قابل للإلغاء في أي وقت</p>
               </div>
             </div>
           ) : (
@@ -394,10 +525,16 @@ function App() {
               <div className="order-2 lg:order-1 relative">
                 <AnimatePresence>
                   {isLoading && (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 pointer-events-none z-50">
-                      <svg className="w-full h-full overflow-visible">
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="absolute inset-0 pointer-events-none z-50 overflow-visible"
+                    >
+                      {/* Interactive Beam */}
+                      <svg className="w-full h-full overflow-visible" style={{ position: 'absolute', top: 0, left: 0 }}>
                         <motion.path
-                          d="M 600,200 Q 300,100 0,300"
+                          d="M 600,200 Q 300,100 0,300" // Curve from left column center towards right column area
                           fill="none"
                           stroke="url(#gradient-beam)"
                           strokeWidth="4"
@@ -418,129 +555,243 @@ function App() {
                   )}
                 </AnimatePresence>
 
-                <ResultsPanel ref={resultsPanelRef} analysis={analysis} isLoading={isLoading} error={error} />
+                <ResultsPanel
+                  ref={resultsPanelRef}
+                  analysis={analysis}
+                  isLoading={isLoading}
+                  error={error}
+                />
 
+                {/* Followup Question */}
                 {analysis && !isLoading && !error && (
                   <div className="mt-6">
                     {!showFollowupBox ? (
-                      <button className="w-full py-4 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded-xl font-bold transition-all" onClick={() => setShowFollowupBox(true)}>
+                      <button
+                        className="w-full py-3 bg-yellow-100 hover:bg-yellow-200 text-yellow-900 font-bold rounded-lg shadow transition"
+                        onClick={() => setShowFollowupBox(true)}
+                      >
                         🧠 هل التحليل كافٍ؟ أضف سؤالًا
                       </button>
                     ) : (
-                      <div className="glass border border-blue-500/20 rounded-2xl p-6 space-y-4">
-                        <label className="block text-slate-300 font-medium">سؤال تكميلي:</label>
+                      <div className="bg-white border border-yellow-200 rounded-lg p-4 mt-2 space-y-3">
+                        <label className="block text-slate-700 mb-1 font-medium">اكتب سؤالك التكميلي المتعلق بنفس القضية:</label>
                         <textarea
-                          className="w-full h-24 p-4 bg-slate-900/50 border border-white/10 rounded-xl focus:ring-2 focus:ring-blue-500/50 text-slate-200"
-                          placeholder="اكتب سؤالك هنا..."
+                          className="w-full h-20 p-2 border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-yellow-400 text-right"
+                          placeholder="مثال: ما هو موقف القانون المغربي من الوقائع التالية..."
                           value={followupQuestion}
                           onChange={e => setFollowupQuestion(e.target.value)}
                           disabled={isFollowupLoading}
+                          dir="rtl"
                         />
-                        <div className="flex gap-3 justify-end">
-                          <button className="px-4 py-2 text-slate-400 hover:bg-white/5 rounded-lg" onClick={() => setShowFollowupBox(false)} disabled={isFollowupLoading}>إلغاء</button>
-                          <button className="px-6 py-2 bg-blue-600 text-white rounded-lg font-bold disabled:opacity-50" onClick={handleSendFollowup} disabled={isFollowupLoading || !followupQuestion.trim()}>
-                            {isFollowupLoading ? 'جاري الإرسال...' : 'إرسال'}
-                          </button>
+                        <div className="flex gap-2 justify-end">
+                          <button
+                            className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded font-medium"
+                            onClick={() => { setShowFollowupBox(false); setFollowupQuestion(''); setFollowupAnswer(null); setFollowupError(null); }}
+                            disabled={isFollowupLoading}
+                          >إلغاء</button>
+                          <button
+                            className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded font-bold disabled:bg-yellow-300"
+                            onClick={handleSendFollowup}
+                            disabled={isFollowupLoading || !followupQuestion.trim()}
+                          >{isFollowupLoading ? 'جاري الإرسال...' : 'إرسال السؤال'}</button>
                         </div>
+                        {followupError && <div className="text-red-600 text-sm mt-1">{followupError}</div>}
                       </div>
                     )}
                     {followupAnswer && (
-                      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="p-6 bg-blue-900/20 border border-blue-500/30 rounded-2xl mt-4 text-slate-200 whitespace-pre-line leading-relaxed">
-                        <div className="text-blue-400 font-bold mb-2 flex items-center gap-2"><span>💬</span> الجواب التكميلي:</div>
-                        {followupAnswer}
-                      </motion.div>
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4 text-right whitespace-pre-line text-blue-900">
+                        <div className="font-bold mb-2 text-blue-800">الجواب القانوني التكميلي:</div>
+                        <div>{followupAnswer}</div>
+                      </div>
                     )}
                   </div>
                 )}
               </div>
 
               {/* Left Column - Input */}
-              <div className="space-y-6 order-1 lg:order-2">
-                <div className="glass rounded-2xl p-8 border border-white/5">
-                  <div className="flex items-center gap-3 mb-8 border-b border-white/5 pb-6">
-                    <div className="p-3 bg-blue-600/10 rounded-2xl border border-blue-500/20">
+              <div className="space-y-6 order-1 lg:order-2" dir="rtl">
+                <div className="glass rounded-2xl p-8 animate-slide-up">
+                  <div className="flex items-center gap-3 mb-6 border-b border-primary-100 pb-4">
+                    <div className="p-2 bg-primary-50 rounded-lg">
                       <img src="/logo.svg" className="w-8 h-8 opacity-80" alt="icon" />
                     </div>
-                    <h2 className="text-2xl font-bold text-slate-100 font-heading">تفاصيل النازلة</h2>
+                    <h2 className="text-xl font-bold text-primary-900 font-heading">تفاصيل النازلة</h2>
                   </div>
 
-                  <div className="space-y-6">
-                    <div>
-                      <label className="block text-sm font-semibold text-slate-400 mb-2">عنوان القضية (اختياري)</label>
-                      <input
-                        type="text"
-                        className="w-full p-4 bg-slate-900/50 border border-white/10 rounded-xl focus:ring-2 focus:ring-blue-500/50 text-slate-200 placeholder-slate-600"
-                        placeholder="مثال: نزاع عقاري..."
-                        value={caseTitle}
-                        onChange={e => setCaseTitle(e.target.value)}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-semibold text-slate-400 mb-2">الوقائع والتفاصيل</label>
-                      <textarea
-                        className="w-full h-64 p-4 bg-slate-900/50 border border-white/10 rounded-xl focus:ring-2 focus:ring-blue-500/50 text-slate-200 placeholder-slate-600 leading-relaxed"
-                        placeholder="صف الوقائع هنا..."
-                        value={caseText}
-                        onChange={e => setCaseText(e.target.value)}
-                      />
-                    </div>
+                  {/* Title Input */}
+                  <div className="mb-6">
+                    <label className="block text-sm font-semibold text-primary-800 mb-2">عنوان القضية (اختياري)</label>
+                    <input
+                      type="text"
+                      className="w-full p-4 bg-white/50 border border-secondary-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-secondary-400 focus:bg-white transition-all text-right placeholder-slate-400"
+                      placeholder="مثال: نزاع عقاري حول ملكية أرض"
+                      value={caseTitle}
+                      onChange={e => setCaseTitle(e.target.value)}
+                      dir="rtl"
+                    />
                   </div>
+
+
+                  <label className="block text-sm font-semibold text-primary-800 mb-2">الوقائع والتفاصيل</label>
+                  <textarea
+                    className="w-full h-48 p-4 bg-white/50 border border-secondary-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-secondary-400 focus:bg-white transition-all text-right placeholder-slate-400 leading-relaxed resize-none"
+                    placeholder="يرجى وصف تفاصيل القضية، الأطراف المعنية، الوقائع الأساسية، وأي ظروف ذات صلة…"
+                    value={caseText}
+                    onChange={e => setCaseText(e.target.value)}
+                    dir="rtl"
+                  />
                 </div>
-
+                {/* Clarifying Questions */}
                 {caseText.trim() && (
-                  <div className="glass border border-blue-500/20 rounded-2xl p-6">
-                    <div className="flex justify-between items-center mb-4">
-                      <h4 className="text-lg font-bold text-slate-200">أسئلة توضيحية</h4>
-                      <button onClick={handleSuggestQuestions} disabled={isQuestionsLoading} className="px-4 py-2 bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 rounded-lg border border-blue-500/30 text-xs font-bold transition-all">
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-2" dir="rtl">
+                    <div className="flex justify-between items-center mb-2">
+                      <h4 className="text-md font-semibold text-blue-800">أسئلة توضيحية مقترحة</h4>
+                      <button
+                        onClick={handleSuggestQuestions}
+                        disabled={isQuestionsLoading}
+                        className="text-xs bg-blue-100 hover:bg-blue-200 text-blue-800 px-3 py-1 rounded transition-colors"
+                      >
                         {isQuestionsLoading ? 'جاري التوليد...' : 'اقترح أسئلة'}
                       </button>
                     </div>
-                    {clarifyingQuestions.length > 0 && (
-                      <ul className="space-y-3">
+                    {isQuestionsLoading ? (
+                      <div className="text-blue-600">جاري توليد الأسئلة...</div>
+                    ) : clarifyingQuestions.length > 0 ? (
+                      <ul className="list-disc list-inside text-blue-900 space-y-1 pr-2">
                         {clarifyingQuestions.map((q, idx) => (
-                          <li key={idx} className="flex gap-3 text-slate-300 text-sm p-3 bg-white/5 rounded-lg border border-white/5 hover:border-blue-500/30 transition-all">
-                            <span className="text-blue-500">•</span> {q}
-                          </li>
+                          <li key={idx}>{q}</li>
                         ))}
                       </ul>
+                    ) : (
+                      <div className="text-slate-500">لا توجد أسئلة توضيحية حالياً.</div>
+                    )}
+                    {clarifyingQuestionsRaw && clarifyingQuestions.length <= 1 && (
+                      <pre className="text-xs text-slate-400 mt-2 whitespace-pre-wrap">{clarifyingQuestionsRaw}</pre>
                     )}
                   </div>
                 )}
-
-                <div className="flex gap-4">
-                  <button onClick={handleAnalyzeCase} disabled={isLoading || !caseText.trim()} className="flex-1 py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-800 disabled:text-slate-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-500/20 transition-all active:scale-95">
-                    {isLoading ? 'جاري التحليل...' : '🚀 بدء التحليل القانوني'}
+                {/* Action Buttons */}
+                <div className="flex gap-4" dir="rtl">
+                  <button
+                    onClick={handleAnalyzeCase}
+                    disabled={isLoading || !caseText.trim()}
+                    className="flex-1 flex items-center justify-center gap-3 px-6 py-4 bg-gradient-to-r from-primary-700 to-primary-900 hover:from-primary-800 hover:to-primary-950 disabled:from-slate-400 disabled:to-slate-500 disabled:cursor-not-allowed text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5"
+                  >
+                    {isLoading ? (
+                      <>
+                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        <span>جاري التحليل...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>🚀</span>
+                        <span>بدء التحليل القانوني</span>
+                      </>
+                    )}
                   </button>
-                  <button onClick={handleClearAll} className="px-8 py-4 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-2xl border border-white/10 font-bold transition-all">مسح</button>
+                  <button
+                    onClick={handleClearAll}
+                    className="px-6 py-4 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl font-medium shadow-sm hover:shadow transition-all"
+                  >
+                    مسح
+                  </button>
                 </div>
-
-                <div className="glass border border-white/5 rounded-2xl p-6 space-y-6">
-                  <h3 className="text-lg font-bold text-slate-200">أدوات ذكية</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="p-4 bg-slate-900/40 rounded-xl border border-white/5">
-                      <input type="file" accept="audio/*" onChange={handleTranscribeAudio} ref={fileInputRef} className="hidden" id="audio-upload" />
-                      <label htmlFor="audio-upload" className="w-full py-2 bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 rounded-lg text-xs font-bold cursor-pointer text-center block transition-all">{isTranscribing ? 'جاري...' : '🔊 ملف صوتي'}</label>
+                {/* Quick Info */}
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4" dir="rtl">
+                  <div className="flex items-start gap-3">
+                    <div>
+                      <h4 className="text-sm font-medium text-amber-800 mb-1">إرشادات التحليل</h4>
+                      <ul className="text-sm text-amber-700 space-y-1">
+                        <li>• قدم وقائع القضية والظروف بتفصيل</li>
+                        <li>• اذكر الأطراف المعنية وأدوارهم</li>
+                        <li>• أضف أي تساؤلات أو إشكالات قانونية</li>
+                      </ul>
                     </div>
-                    <div className="p-4 bg-slate-900/40 rounded-xl border border-white/5">
-                      <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" id="image-upload" />
-                      <label htmlFor="image-upload" className="w-full py-2 bg-teal-600/10 hover:bg-teal-600/20 text-teal-400 rounded-lg text-xs font-bold cursor-pointer text-center block transition-all">{isOcrLoading ? 'جاري...' : '📷 صورة مستند'}</label>
+                  </div>
+                </div>
+                {/* Transcription Section */}
+                <div className="bg-white rounded-lg shadow p-6">
+                  <h2 className="text-xl font-bold mb-2 text-slate-800">أدوات ذكية</h2>
+                  <div className="flex gap-4 flex-wrap">
+                    {/* Audio Section */}
+                    <div className="flex-1 min-w-[200px]">
+                      <h3 className="text-sm font-semibold text-slate-600 mb-2">نسخ الصوت إلى نص</h3>
+                      <input
+                        type="file"
+                        accept="audio/*"
+                        onChange={e => {
+                          console.log('Input file changed', e);
+                          handleTranscribeAudio(e);
+                        }}
+                        ref={fileInputRef}
+                        className="hidden"
+                        id="audio-upload"
+                        disabled={isTranscribing}
+                      />
+                      <label
+                        htmlFor="audio-upload"
+                        className={`flex items-center justify-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium cursor-pointer transition-all ${isTranscribing ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      >
+                        {isTranscribing ? 'جاري التحويل...' : 'رفع ملف صوتي'}
+                      </label>
+                    </div>
+
+                    {/* Image Section */}
+                    <div className="flex-1 min-w-[200px]">
+                      <h3 className="text-sm font-semibold text-slate-600 mb-2">تحويل صورة إلى نص</h3>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        className="hidden"
+                        id="image-upload"
+                        disabled={isOcrLoading}
+                      />
+                      <label
+                        htmlFor="image-upload"
+                        className={`flex items-center justify-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg font-medium cursor-pointer transition-all ${isOcrLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      >
+                        {isOcrLoading ? 'جاري الاستخراج...' : 'رفع صورة مستند'}
+                      </label>
                     </div>
                   </div>
                   {transcriptionResult && (
-                    <div className="p-4 bg-slate-800/50 border border-white/5 rounded-xl text-slate-200 text-sm max-h-40 overflow-y-auto">
-                      {transcriptionResult}
+                    <div className="mt-4 p-3 bg-gray-50 border rounded text-right whitespace-pre-wrap text-slate-800" style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                      <strong>النص المحول:</strong>
+                      <div>{transcriptionResult}</div>
                     </div>
                   )}
                 </div>
-
-                <div className="glass border border-white/5 rounded-2xl p-6 flex items-center justify-between gap-4">
-                  <div className="space-y-1">
-                    <h4 className="font-bold text-slate-200">توليد التقرير</h4>
-                    <p className="text-xs text-slate-500">تحميل ملف PDF متطابق مع المعايير</p>
-                  </div>
+                {/* Report Generation Section */}
+                <div className="bg-white rounded-lg shadow p-6">
+                  <h2 className="text-xl font-bold mb-2 text-slate-800">توليد التقرير</h2>
+                  <p className="text-sm text-slate-600 mb-4">
+                    التقرير يحتوي على النص العربي المحول إلى الحروف اللاتينية للتوافق مع PDF
+                  </p>
                   <div className="flex gap-2">
-                    <button onClick={() => analysis && resultsPanelRef.current?.print()} disabled={!analysis} className="px-6 py-3 bg-white text-slate-900 disabled:bg-slate-800 disabled:text-slate-600 rounded-xl font-bold shadow-lg transition-all active:scale-95">📄 التقرير</button>
-                    <button onClick={() => setShowDiagnostics(true)} className="p-3 bg-slate-800 text-slate-400 rounded-xl hover:text-slate-200 transition-all">🔧</button>
+                    <button
+                      onClick={() => {
+                        if (!analysis) {
+                          setError('يرجى تحليل القضية أولاً.');
+                          return;
+                        }
+                        if (resultsPanelRef.current) {
+                          resultsPanelRef.current.print();
+                        }
+                      }}
+                      disabled={isLoading || !analysis}
+                      className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg font-medium"
+                    >
+                      {isLoading ? 'جاري توليد التقرير...' : 'توليد تقرير PDF'}
+                    </button>
+
+                    <button
+                      onClick={() => setShowDiagnostics(true)}
+                      className="px-3 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg font-medium text-sm"
+                      title="تشخيص مشاكل توليد التقرير"
+                    >
+                      🔧
+                    </button>
                   </div>
                 </div>
               </div>
@@ -548,59 +799,77 @@ function App() {
           )}
         </main>
 
-        <footer className="glass border-t border-white/5 mt-12 py-10">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-8">
-            <div className="flex items-center gap-4">
-              <img src="/logo.svg" className="w-10 h-10 opacity-60" alt="footer-logo" />
-              <div>
-                <p className="text-slate-400 font-bold">الخبير القانوني</p>
-                <p className="text-xs text-slate-600">من تصميم الطالب الشغوف مصعب فاطمي</p>
+        {/* Footer */}
+        <footer className="bg-white border-t border-slate-200 mt-12">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-slate-600">
+                منصة الخبير ، من تصميم الطالب الشغوف : مصعب فاطمي .
+              </p>
+              <div className="flex items-center gap-4 text-sm text-slate-500">
+                <span>Secure</span>
+                <span>•</span>
+                <span>Confidential</span>
+                <span>•</span>
+                <span>Professional</span>
               </div>
-            </div>
-            <div className="flex gap-8 text-[10px] font-mono tracking-widest text-slate-600 uppercase">
-              <span className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-green-500/40 rounded-full" /> Encrypted</span>
-              <span className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-blue-500/40 rounded-full" /> Private</span>
-              <span className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-purple-500/40 rounded-full" /> AI Verified</span>
             </div>
           </div>
         </footer>
 
-        <AnimatePresence>
-          {showSubscriptionModal && (
-            <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-[100] p-4">
-              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} className="glass max-w-md w-full rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
-                <div className="p-6 border-b border-white/5 flex justify-between items-center">
-                  <h2 className="text-xl font-bold text-slate-100 font-heading">اشترك الآن</h2>
-                  <button onClick={() => setShowSubscriptionModal(false)} className="text-slate-500 hover:text-white transition-colors">✕</button>
+        {/* Subscription Modal */}
+        {showSubscriptionModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-4 border-b border-slate-200">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-lg font-semibold text-slate-800">اشترك في منصة الخبير</h2>
+                  <button
+                    onClick={() => setShowSubscriptionModal(false)}
+                    className="text-slate-400 hover:text-slate-600"
+                  >
+                    ✕
+                  </button>
                 </div>
-                <div className="p-6">
-                  <PayPalSubscription plan={getPlan('lawyer')!} onSubscriptionSuccess={handleSubscriptionSuccess} onSubscriptionError={handleSubscriptionError} />
-                  {subscriptionError && <div className="mt-4 p-3 bg-red-500/10 border border-red-500/30 text-red-500 rounded-xl text-xs text-center">{subscriptionError}</div>}
-                </div>
-              </motion.div>
+              </div>
+              <div className="p-4">
+                <PayPalSubscription
+                  plan={getPlan('lawyer')!}
+                  onSubscriptionSuccess={handleSubscriptionSuccess}
+                  onSubscriptionError={handleSubscriptionError}
+                />
+                {subscriptionError && (
+                  <div className="mt-4 p-3 bg-red-100 text-red-700 rounded text-sm text-right">
+                    {subscriptionError}
+                  </div>
+                )}
+              </div>
             </div>
-          )}
-          {showAdminLogin && (
-            <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-[100] p-4">
-              <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="w-full max-w-md">
-                <AdminLogin onLoginSuccess={handleAdminLoginSuccess} />
-              </motion.div>
+          </div>
+        )}
+
+        {/* Admin Login Modal */}
+        {showAdminLogin && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <AdminLogin onLoginSuccess={handleAdminLoginSuccess} />
+          </div>
+        )}
+
+        {/* Report Diagnostic Modal */}
+        {showDiagnostics && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-center justify-center p-4">
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto relative">
+              <button
+                onClick={() => setShowDiagnostics(false)}
+                className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
+              >
+                ✕
+              </button>
+              <ReportDiagnostics analysis={analysis} onClose={() => setShowDiagnostics(false)} />
             </div>
-          )}
-          {showDiagnostics && (
-            <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-[100] p-4">
-              <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 30 }} className="glass max-w-3xl w-full max-h-[90vh] rounded-2xl border border-white/10 shadow-2xl flex flex-col overflow-hidden">
-                <div className="p-6 border-b border-white/5 flex justify-between items-center bg-white/5">
-                  <h3 className="text-lg font-bold text-slate-100">تشخيص المشاكل التقنية</h3>
-                  <button onClick={() => setShowDiagnostics(false)} className="text-slate-500 hover:text-white transition-colors">✕</button>
-                </div>
-                <div className="overflow-y-auto">
-                  <ReportDiagnostics analysis={analysis} onClose={() => setShowDiagnostics(false)} />
-                </div>
-              </motion.div>
-            </div>
-          )}
-        </AnimatePresence>
+          </div>
+        )}
+
       </div>
     </>
   );
@@ -632,13 +901,12 @@ export function ExamplePage() {
   } as any;
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-slate-950 p-8" dir="rtl">
-      <ParticlesBackground />
-      <div className="max-w-4xl mx-auto relative z-10">
-        <h1 className="text-3xl font-bold mb-6 text-center text-slate-100 glow-blue">نموذج تحليل قانوني</h1>
+    <div className="min-h-screen bg-gray-50 p-8" dir="rtl">
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-3xl font-bold mb-6 text-center text-slate-800">نموذج تحليل قانوني</h1>
         <ResultsPanel analysis={exampleAnalysis} isLoading={false} error={null} />
         <div className="mt-8 text-center">
-          <Link to="/" className="px-8 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-bold transition-all shadow-lg shadow-blue-500/20 active:scale-95">
+          <Link to="/" className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-bold">
             العودة للصفحة الرئيسية
           </Link>
         </div>
