@@ -14,6 +14,9 @@ import { adminLogout } from './services/adminAuth';
 import { Link, useNavigate } from "react-router-dom";
 import { SEO } from './components/SEO';
 import { databaseService } from './services/database';
+import { motion, AnimatePresence } from 'framer-motion';
+import ParticlesBackground from './components/ParticlesBackground';
+import TextDecode from './components/TextDecode';
 
 type HistoryItem = {
   id: number;
@@ -60,11 +63,6 @@ function App() {
   // Ref for ResultsPanel to access print method
   const resultsPanelRef = useRef<ResultsPanelHandle>(null);
 
-  const navigate = useNavigate();
-
-  // Subscription status derived from paypalService and admin status
-  const isSubscribedFromService = hasActiveSubscription();
-
   const [selectedType, setSelectedType] = useState<'student' | 'judge' | 'lawyer'>('student');
 
   // Load history from localStorage on mount
@@ -106,6 +104,7 @@ function App() {
 
     setIsLoading(true);
     setError(null);
+    setAnalysis(null); // Clear previous
 
     let caseId: string | null = null;
 
@@ -166,25 +165,23 @@ function App() {
     if (!caseText.trim()) return;
     setIsQuestionsLoading(true);
     suggestClarifyingQuestions(caseText)
-      .then((result) => {
+      .then((result: any) => {
         let questions: string[] = [];
         let rawText = '';
         if (typeof result === 'string') {
           questions = result.split(/\n|\r/).map((q: string) => q.trim()).filter((q: string) => q.length > 0);
         } else if (result && typeof result === 'object') {
-          // Try to find the first array property
-          const arrProp = Object.values(result).find((v) => Array.isArray(v));
+          const resObj = result as any;
+          const arrProp = Object.values(resObj).find((v) => Array.isArray(v));
           if (arrProp) {
             questions = arrProp as string[];
-          } else if (result.raw && typeof result.raw === 'string') {
-            rawText = result.raw.trim();
-            // Extract lines that look like numbered or asterisked questions
-            questions = result.raw
+          } else if (resObj.raw && typeof resObj.raw === 'string') {
+            rawText = resObj.raw.trim();
+            questions = resObj.raw
               .split(/\n|\r/)
               .map((line: string) => line.trim())
               .filter((line: string) => /^\d+\.\s*(\*\*)?/.test(line))
               .map((line: string) => line.replace(/^\d+\.\s*(\*\*)?\s*/, '').replace(/\*\*$/, '').trim());
-            // Fallback: if no questions found, show the whole raw as one question
             if (questions.length === 0) {
               questions = [rawText];
             }
@@ -249,7 +246,7 @@ function App() {
     }
   };
 
-  const handleSubscriptionSuccess = (subscriptionId: string) => {
+  const handleSubscriptionSuccess = () => {
     setIsSubscribed(true);
     setShowSubscriptionModal(false);
     setSubscriptionError(null);
@@ -317,7 +314,8 @@ function App() {
   return (
     <>
       <SEO />
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50" dir="rtl">
+      <ParticlesBackground />
+      <div className="min-h-screen relative overflow-hidden" dir="rtl">
         {/* Header */}
         <header className="bg-white shadow-sm border-b border-slate-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -335,9 +333,13 @@ function App() {
                 </div>
               </div>
               {/* Center: System Status */}
-              <div className="flex items-center gap-2 text-slate-600">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <span className="text-sm aref-ruqaa-regular">النظام متصل</span>
+              <div className="hidden md:flex items-center gap-2 text-slate-500">
+                <motion.div
+                  animate={{ scale: [1, 1.5, 1], opacity: [0.5, 1, 0.5] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                  className="w-2 h-2 bg-blue-500 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.8)]"
+                ></motion.div>
+                <span className="text-xs font-medium tracking-widest uppercase opacity-70">AI Core Active</span>
               </div>
               {/* Left: Action Buttons */}
               <div className="flex items-center gap-2">
@@ -414,8 +416,8 @@ function App() {
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
           {/* Hero Section */}
           <div className="text-center mb-12 animate-fade-in">
-            <h1 className="text-4xl md:text-5xl font-bold font-heading text-primary-900 mb-4 leading-tight">
-              مستشارك القانوني الذكي <span className="text-gold-500">الخبير</span>
+            <h1 className="text-4xl md:text-5xl font-bold font-heading text-slate-900 mb-4 leading-tight">
+              <TextDecode text="مستشارك القانوني الذكي" className="glow-blue" /> <span className="text-blue-600 font-extrabold italic">الخبير</span>
             </h1>
             <p className="text-lg text-slate-600 max-w-2xl mx-auto leading-relaxed">
               تحليل قانوني فوري ودقيق للنوازل، مدعوم بالذكاء الاصطناعي والترسانة القانونية المغربية.
@@ -538,7 +540,39 @@ function App() {
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* Right Column - Results */}
-              <div className="order-2 lg:order-1">
+              <div className="order-2 lg:order-1 relative">
+                <AnimatePresence>
+                  {isLoading && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="absolute inset-0 pointer-events-none z-50 overflow-visible"
+                    >
+                      {/* Interactive Beam */}
+                      <svg className="w-full h-full overflow-visible" style={{ position: 'absolute', top: 0, left: 0 }}>
+                        <motion.path
+                          d="M 600,200 Q 300,100 0,300" // Curve from left column center towards right column area
+                          fill="none"
+                          stroke="url(#gradient-beam)"
+                          strokeWidth="4"
+                          className="data-beam"
+                          initial={{ pathLength: 0, opacity: 0 }}
+                          animate={{ pathLength: 1, opacity: 1 }}
+                          transition={{ duration: 0.8, repeat: Infinity }}
+                        />
+                        <defs>
+                          <linearGradient id="gradient-beam" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" stopColor="#3b82f6" stopOpacity="0" />
+                            <stop offset="50%" stopColor="#60a5fa" stopOpacity="1" />
+                            <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
+                          </linearGradient>
+                        </defs>
+                      </svg>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
                 <ResultsPanel
                   ref={resultsPanelRef}
                   analysis={analysis}
@@ -818,7 +852,7 @@ function App() {
               </div>
               <div className="p-4">
                 <PayPalSubscription
-                  plan={getPlan('lawyer')}
+                  plan={getPlan('lawyer')!}
                   onSubscriptionSuccess={handleSubscriptionSuccess}
                   onSubscriptionError={handleSubscriptionError}
                 />
@@ -835,7 +869,7 @@ function App() {
         {/* Admin Login Modal */}
         {showAdminLogin && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <AdminLogin onLoginSuccess={handleAdminLoginSuccess} onClose={() => setShowAdminLogin(false)} />
+            <AdminLogin onLoginSuccess={handleAdminLoginSuccess} />
           </div>
         )}
 
@@ -849,7 +883,7 @@ function App() {
               >
                 ✕
               </button>
-              <ReportDiagnostics />
+              <ReportDiagnostics analysis={analysis} onClose={() => setShowDiagnostics(false)} />
             </div>
           </div>
         )}
@@ -876,8 +910,13 @@ export function ExamplePage() {
       "قانون 44.00 المتعلق ببيع العقار في طور الإنجاز"
     ],
     "الاجتهاد_القضائي": "قرار محكمة النقض عدد 123 لسنة 2020...",
-    "الخلاصة": "يحق للمدعي المطالبة بالفسخ والتعويض."
-  };
+    "الخلاصة": "يحق للمدعي المطالبة بالفسخ والتعويض.",
+    "العناصر_المادية_والمعنوية": ["تحليل العناصر"],
+    "الدفاعات_الممكنة": ["دفع أول"],
+    "الإجراءات_المقترحة": ["إجراء أول"],
+    "سوابق_قضائية_مغربية_محتملة": ["سابق أول"],
+    "تحليل_النازلة": "تحليل مطول"
+  } as any;
 
   return (
     <div className="min-h-screen bg-gray-50 p-8" dir="rtl">

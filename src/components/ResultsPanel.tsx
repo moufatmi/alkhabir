@@ -1,5 +1,6 @@
 import React, { useState, forwardRef, useImperativeHandle } from 'react';
 import { Scale, AlertTriangle, Clock, ChevronDown, ChevronUp, Printer } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { LegalAnalysis } from '../types';
 
 interface ResultsPanelProps {
@@ -85,7 +86,12 @@ export const ResultsPanel = forwardRef<ResultsPanelHandle, ResultsPanelProps>(({
     return (
       <div className="bg-white rounded-lg shadow-lg p-6 border border-slate-200">
         <div className="flex items-center gap-2 mb-4">
-          <Scale className="w-5 h-5 text-blue-800" />
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+          >
+            <Scale className="w-5 h-5 text-blue-800" />
+          </motion.div>
           <h3 className="text-lg font-semibold text-slate-800">التحليل القانوني</h3>
         </div>
         <div className="text-center py-12">
@@ -122,8 +128,16 @@ export const ResultsPanel = forwardRef<ResultsPanelHandle, ResultsPanelProps>(({
 
         <div className="flex items-center gap-2 mb-4 justify-between print:hidden">
           <div className="flex items-center gap-2">
-            <Scale className="w-5 h-5 text-blue-800" />
-            <h3 className="text-lg font-semibold text-slate-800">نتائج التحليل القانوني</h3>
+            <motion.div
+              animate={isLoading ? {
+                scale: [1, 1.2, 1],
+                filter: ["blur(0px)", "blur(2px)", "blur(0px)"]
+              } : {}}
+              transition={{ duration: 1, repeat: Infinity }}
+            >
+              <Scale className="w-6 h-6 text-blue-800" />
+            </motion.div>
+            <h3 className="text-lg font-bold text-slate-800 glow-blue">نتائج التحليل القانوني</h3>
           </div>
         </div>
 
