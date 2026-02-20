@@ -85,13 +85,30 @@ export async function extractTextFromImage(file: File): Promise<string> {
                 image: base64Image,
                 description: "استخرج النص من هذه الصورة."
             }),
-            false,
+            true, // ASYNC: true
             '/',
             ExecutionMethod.POST
         );
 
-        if (execution.status === 'completed') {
-            const response = JSON.parse(execution.responseBody);
+        console.log(`OCR Execution started with ID: ${execution.$id}. Starting polling...`);
+
+        // Polling logic
+        let status = execution.status;
+        let finalExecution = execution;
+        const maxAttempts = 30; // 60 seconds total
+        let attempts = 0;
+
+        while ((status === 'waiting' || status === 'processing') && attempts < maxAttempts) {
+            attempts++;
+            await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
+
+            finalExecution = await functions.getExecution(FUNCTION_ID, execution.$id);
+            status = finalExecution.status;
+            console.log(`Poll attempt ${attempts}: Status is ${status}`);
+        }
+
+        if (status === 'completed') {
+            const response = JSON.parse(finalExecution.responseBody);
             if (response.success) {
                 return response.result || response.analysis;
             } else {
@@ -99,8 +116,8 @@ export async function extractTextFromImage(file: File): Promise<string> {
                 throw new Error(response.error || "OCR failed");
             }
         } else {
-            console.error('OCR Execution Failed. Full Execution Object:', execution);
-            throw new Error(`Execution ended with status: ${execution.status}. Error: ${execution.errors || 'Unknown timeout or failure'}`);
+            console.error('OCR Execution Failed or Timed Out. Final Object:', finalExecution);
+            throw new Error(`تعذر استخراج النص. (الحالة: ${status}). ${finalExecution.errors || 'قد يكون الملف كبيراً جداً أو السيرفر مشغولاً.'}`);
         }
     } catch (error: any) {
         console.error('OCR Error:', error);

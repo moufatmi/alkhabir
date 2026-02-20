@@ -14,6 +14,11 @@ module.exports = async ({ req, res, log, error }) => {
 
         log(`Processing request type: ${type} for: ${query.substring(0, 50)}...`);
 
+        if (!process.env.GROQ_API_KEY) {
+            error("GROQ_API_KEY is missing from environment variables.");
+            return res.json({ success: false, error: "عذراً، نظام الذكاء الاصطناعي غير مهيأ حالياً (مفتاح الـ API مفقود)." }, 500);
+        }
+
         const groq = new Groq({
             apiKey: process.env.GROQ_API_KEY
         });
