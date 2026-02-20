@@ -297,9 +297,9 @@ function App() {
     <>
       <SEO />
       <ParticlesBackground />
-      <div className="min-h-screen relative overflow-hidden" dir="rtl">
+      <div className="min-h-screen relative overflow-hidden bg-slate-950" dir="rtl">
         {/* Header */}
-        <header className="bg-white shadow-sm border-b border-slate-200">
+        <header className="glass border-b border-white/5 sticky top-0 z-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex flex-row-reverse items-center justify-between h-16">
               {/* Right: Logo and Title */}
@@ -310,8 +310,8 @@ function App() {
                   className="w-12 h-12"
                 />
                 <div>
-                  <h1 className="text-xl font-bold text-slate-800 aref-ruqaa-bold">الخبير | Alkhabir</h1>
-                  <p className="text-sm text-slate-600 aref-ruqaa-regular">المساعد الذكي للقانوني  </p>
+                  <h1 className="text-xl font-bold text-slate-100 aref-ruqaa-bold glow-blue">الخبير | Alkhabir</h1>
+                  <p className="text-sm text-slate-400 aref-ruqaa-regular">المساعد الذكي للقانوني  </p>
                 </div>
               </div>
               {/* Center: System Status */}
@@ -398,46 +398,100 @@ function App() {
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
           {/* Hero Section */}
           <div className="text-center mb-12 animate-fade-in">
-            <h1 className="text-4xl md:text-5xl font-bold font-heading text-slate-900 mb-4 leading-tight">
-              <TextDecode text="مستشارك القانوني الذكي" className="glow-blue" /> <span className="text-blue-600 font-extrabold italic">الخبير</span>
+            <h1 className="text-4xl md:text-5xl font-bold font-heading text-slate-100 mb-4 leading-tight">
+              <TextDecode text="مستشارك القانوني الذكي" className="glow-blue" /> <span className="text-blue-400 font-extrabold italic">الخبير</span>
             </h1>
-            <p className="text-lg text-slate-600 max-w-2xl mx-auto leading-relaxed">
+            <p className="text-lg text-slate-400 max-w-2xl mx-auto leading-relaxed">
               تحليل قانوني فوري ودقيق للنوازل، مدعوم بالذكاء الاصطناعي والترسانة القانونية المغربية.
             </p>
           </div>
 
-          {!isSubscribed && !isAdminUser ? (
-            <div className="max-w-4xl mx-auto text-center py-12">
-              <div className="bg-white rounded-lg shadow-lg p-8">
-                <h2 className="text-3xl font-bold text-slate-800 mb-4">مرحباً بك في منصة الخبير</h2>
-                <p className="text-lg text-slate-600 mb-6">
-                  منصة الخبير هي المساعد الذكي للقانوني . اشترك الآن للوصول إلى جميع الميزات.
-                </p>
-                <div style={{ display: 'flex', justifyContent: 'center', gap: 12, marginBottom: 24 }}>
-                  {userTypes.map(type => (
-                    <button
-                      key={type.key}
-                      onClick={() => setSelectedType(type.key as 'student' | 'judge' | 'lawyer')}
-                      style={{
-                        padding: '10px 20px',
-                        borderRadius: 8,
-                        border: selectedType === type.key ? '2px solid #2563eb' : '1px solid #ddd',
-                        background: selectedType === type.key ? '#2563eb' : '#f3f4f6',
-                        color: selectedType === type.key ? '#fff' : '#1e293b',
-                        fontWeight: 'bold',
-                        fontSize: 16,
-                        cursor: 'pointer'
-                      }}
-                    >
-                      {type.label} ({type.price} درهم)
-                    </button>
-                  ))}
+          <div className="max-w-4xl mx-auto text-center py-12">
+            <div className="glass rounded-2xl shadow-2xl p-8 border border-white/5">
+              <h2 className="text-3xl font-bold text-slate-100 mb-4 glow-blue">مرحباً بك في منصة الخبير</h2>
+              <p className="text-lg text-slate-400 mb-6">
+                منصة الخبير هي المساعد الذكي للقانوني . اشترك الآن للوصول إلى جميع الميزات.
+              </p>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: 12, marginBottom: 24 }}>
+                {userTypes.map(type => (
+                  <button
+                    key={type.key}
+                    onClick={() => setSelectedType(type.key as 'student' | 'judge' | 'lawyer')}
+                    style={{
+                      padding: '10px 20px',
+                      borderRadius: 8,
+                      border: selectedType === type.key ? '2px solid #2563eb' : '1px solid #ddd',
+                      background: selectedType === type.key ? '#2563eb' : '#f3f4f6',
+                      color: selectedType === type.key ? '#fff' : '#1e293b',
+                      fontWeight: 'bold',
+                      fontSize: 16,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {type.label} ({type.price} درهم)
+                  </button>
+                ))}
+              </div>
+              {/* Payment/Contact logic */}
+              {selectedType === 'student' && (
+                <div style={{ marginTop: 24, textAlign: 'center' }}>
+                  <p style={{ marginBottom: 12, color: '#1e293b', fontWeight: 'bold' }}>
+                    للاستفادة من اشتراك الطلبة (50 درهم شهرياً)، يرجى التواصل معنا عبر واتساب للتحقق من وضعك كطالب والتفاوض حول طريقة الدفع.
+                  </p>
+                  <a
+                    href={WHATSAPP_LINK}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: 'inline-block',
+                      background: '#25D366',
+                      color: '#fff',
+                      padding: '10px 24px',
+                      borderRadius: 8,
+                      fontWeight: 'bold',
+                      textDecoration: 'none',
+                      fontSize: 16
+                    }}
+                  >
+                    تواصل عبر واتساب
+                  </a>
                 </div>
-                {/* Payment/Contact logic */}
-                {selectedType === 'student' && (
+              )}
+              {selectedType === 'judge' && (
+                <div style={{ marginTop: 24, textAlign: 'center' }}>
+                  <p style={{ marginBottom: 12, color: '#1e293b', fontWeight: 'bold' }}>
+                    للاستفادة من اشتراك القضاة المتدربين (150 درهم شهرياً)، يرجى التواصل معنا عبر واتساب للتحقق من وضعك كقاضٍ متدرب والتفاوض حول طريقة الدفع.
+                  </p>
+                  <a
+                    href={WHATSAPP_LINK}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: 'inline-block',
+                      background: '#25D366',
+                      color: '#fff',
+                      padding: '10px 24px',
+                      borderRadius: 8,
+                      fontWeight: 'bold',
+                      textDecoration: 'none',
+                      fontSize: 16
+                    }}
+                  >
+                    تواصل عبر واتساب
+                  </a>
+                </div>
+              )}
+              {selectedType === 'lawyer' && (
+                <>
+                  <button
+                    onClick={() => setShowSubscriptionModal(true)}
+                    className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium text-lg"
+                  >
+                    اشترك الآن - 500 MAD/شهر
+                  </button>
                   <div style={{ marginTop: 24, textAlign: 'center' }}>
                     <p style={{ marginBottom: 12, color: '#1e293b', fontWeight: 'bold' }}>
-                      للاستفادة من اشتراك الطلبة (50 درهم شهرياً)، يرجى التواصل معنا عبر واتساب للتحقق من وضعك كطالب والتفاوض حول طريقة الدفع.
+                      اشتراك المحامين (500 درهم شهرياً): يمكنك الدفع مباشرة عبر بايبال أو البطاقة البنكية، أو التواصل معنا عبر واتساب إذا واجهت صعوبة في الدفع.
                     </p>
                     <a
                       href={WHATSAPP_LINK}
@@ -457,345 +511,290 @@ function App() {
                       تواصل عبر واتساب
                     </a>
                   </div>
-                )}
-                {selectedType === 'judge' && (
-                  <div style={{ marginTop: 24, textAlign: 'center' }}>
-                    <p style={{ marginBottom: 12, color: '#1e293b', fontWeight: 'bold' }}>
-                      للاستفادة من اشتراك القضاة المتدربين (150 درهم شهرياً)، يرجى التواصل معنا عبر واتساب للتحقق من وضعك كقاضٍ متدرب والتفاوض حول طريقة الدفع.
-                    </p>
-                    <a
-                      href={WHATSAPP_LINK}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{
-                        display: 'inline-block',
-                        background: '#25D366',
-                        color: '#fff',
-                        padding: '10px 24px',
-                        borderRadius: 8,
-                        fontWeight: 'bold',
-                        textDecoration: 'none',
-                        fontSize: 16
-                      }}
-                    >
-                      تواصل عبر واتساب
-                    </a>
-                  </div>
-                )}
-                {selectedType === 'lawyer' && (
-                  <>
-                    <button
-                      onClick={() => setShowSubscriptionModal(true)}
-                      className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium text-lg"
-                    >
-                      اشترك الآن - 500 MAD/شهر
-                    </button>
-                    <div style={{ marginTop: 24, textAlign: 'center' }}>
-                      <p style={{ marginBottom: 12, color: '#1e293b', fontWeight: 'bold' }}>
-                        اشتراك المحامين (500 درهم شهرياً): يمكنك الدفع مباشرة عبر بايبال أو البطاقة البنكية، أو التواصل معنا عبر واتساب إذا واجهت صعوبة في الدفع.
-                      </p>
-                      <a
-                        href={WHATSAPP_LINK}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{
-                          display: 'inline-block',
-                          background: '#25D366',
-                          color: '#fff',
-                          padding: '10px 24px',
-                          borderRadius: 8,
-                          fontWeight: 'bold',
-                          textDecoration: 'none',
-                          fontSize: 16
-                        }}
-                      >
-                        تواصل عبر واتساب
-                      </a>
-                    </div>
-                  </>
-                )}
-                <div className="mt-6 text-sm text-slate-500">
-                  الاشتراك قابل للإلغاء في أي وقت
-                </div>
+                </>
+              )}
+              <div className="mt-6 text-sm text-slate-500">
+                الاشتراك قابل للإلغاء في أي وقت
               </div>
             </div>
+          </div>
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* Right Column - Results */}
-              <div className="order-2 lg:order-1 relative">
-                <AnimatePresence>
-                  {isLoading && (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="absolute inset-0 pointer-events-none z-50 overflow-visible"
-                    >
-                      {/* Interactive Beam */}
-                      <svg className="w-full h-full overflow-visible" style={{ position: 'absolute', top: 0, left: 0 }}>
-                        <motion.path
-                          d="M 600,200 Q 300,100 0,300" // Curve from left column center towards right column area
-                          fill="none"
-                          stroke="url(#gradient-beam)"
-                          strokeWidth="4"
-                          className="data-beam"
-                          initial={{ pathLength: 0, opacity: 0 }}
-                          animate={{ pathLength: 1, opacity: 1 }}
-                          transition={{ duration: 0.8, repeat: Infinity }}
-                        />
-                        <defs>
-                          <linearGradient id="gradient-beam" x1="0%" y1="0%" x2="100%" y2="0%">
-                            <stop offset="0%" stopColor="#3b82f6" stopOpacity="0" />
-                            <stop offset="50%" stopColor="#60a5fa" stopOpacity="1" />
-                            <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
-                          </linearGradient>
-                        </defs>
-                      </svg>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                <ResultsPanel
-                  ref={resultsPanelRef}
-                  analysis={analysis}
-                  isLoading={isLoading}
-                  error={error}
-                />
-
-                {/* Followup Question */}
-                {analysis && !isLoading && !error && (
-                  <div className="mt-6">
-                    {!showFollowupBox ? (
-                      <button
-                        className="w-full py-3 bg-yellow-100 hover:bg-yellow-200 text-yellow-900 font-bold rounded-lg shadow transition"
-                        onClick={() => setShowFollowupBox(true)}
-                      >
-                        🧠 هل التحليل كافٍ؟ أضف سؤالًا
-                      </button>
-                    ) : (
-                      <div className="bg-white border border-yellow-200 rounded-lg p-4 mt-2 space-y-3">
-                        <label className="block text-slate-700 mb-1 font-medium">اكتب سؤالك التكميلي المتعلق بنفس القضية:</label>
-                        <textarea
-                          className="w-full h-20 p-2 border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-yellow-400 text-right"
-                          placeholder="مثال: ما هو موقف القانون المغربي من الوقائع التالية..."
-                          value={followupQuestion}
-                          onChange={e => setFollowupQuestion(e.target.value)}
-                          disabled={isFollowupLoading}
-                          dir="rtl"
-                        />
-                        <div className="flex gap-2 justify-end">
-                          <button
-                            className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded font-medium"
-                            onClick={() => { setShowFollowupBox(false); setFollowupQuestion(''); setFollowupAnswer(null); setFollowupError(null); }}
-                            disabled={isFollowupLoading}
-                          >إلغاء</button>
-                          <button
-                            className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded font-bold disabled:bg-yellow-300"
-                            onClick={handleSendFollowup}
-                            disabled={isFollowupLoading || !followupQuestion.trim()}
-                          >{isFollowupLoading ? 'جاري الإرسال...' : 'إرسال السؤال'}</button>
-                        </div>
-                        {followupError && <div className="text-red-600 text-sm mt-1">{followupError}</div>}
-                      </div>
-                    )}
-                    {followupAnswer && (
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4 text-right whitespace-pre-line text-blue-900">
-                        <div className="font-bold mb-2 text-blue-800">الجواب القانوني التكميلي:</div>
-                        <div>{followupAnswer}</div>
-                      </div>
-                    )}
-                  </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Right Column - Results */}
+            <div className="order-2 lg:order-1 relative">
+              <AnimatePresence>
+                {isLoading && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="absolute inset-0 pointer-events-none z-50 overflow-visible"
+                  >
+                    {/* Interactive Beam */}
+                    <svg className="w-full h-full overflow-visible" style={{ position: 'absolute', top: 0, left: 0 }}>
+                      <motion.path
+                        d="M 600,200 Q 300,100 0,300" // Curve from left column center towards right column area
+                        fill="none"
+                        stroke="url(#gradient-beam)"
+                        strokeWidth="4"
+                        className="data-beam"
+                        initial={{ pathLength: 0, opacity: 0 }}
+                        animate={{ pathLength: 1, opacity: 1 }}
+                        transition={{ duration: 0.8, repeat: Infinity }}
+                      />
+                      <defs>
+                        <linearGradient id="gradient-beam" x1="0%" y1="0%" x2="100%" y2="0%">
+                          <stop offset="0%" stopColor="#3b82f6" stopOpacity="0" />
+                          <stop offset="50%" stopColor="#60a5fa" stopOpacity="1" />
+                          <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
+                        </linearGradient>
+                      </defs>
+                    </svg>
+                  </motion.div>
                 )}
-              </div>
+              </AnimatePresence>
 
-              {/* Left Column - Input */}
-              <div className="space-y-6 order-1 lg:order-2" dir="rtl">
-                <div className="glass rounded-2xl p-8 animate-slide-up">
-                  <div className="flex items-center gap-3 mb-6 border-b border-primary-100 pb-4">
-                    <div className="p-2 bg-primary-50 rounded-lg">
-                      <img src="/logo.svg" className="w-8 h-8 opacity-80" alt="icon" />
+              <ResultsPanel
+                ref={resultsPanelRef}
+                analysis={analysis}
+                isLoading={isLoading}
+                error={error}
+              />
+
+              {/* Followup Question */}
+              {analysis && !isLoading && !error && (
+                <div className="mt-6">
+                  {!showFollowupBox ? (
+                    <button
+                      className="w-full py-3 bg-yellow-100 hover:bg-yellow-200 text-yellow-900 font-bold rounded-lg shadow transition"
+                      onClick={() => setShowFollowupBox(true)}
+                    >
+                      🧠 هل التحليل كافٍ؟ أضف سؤالًا
+                    </button>
+                  ) : (
+                    <div className="bg-white border border-yellow-200 rounded-lg p-4 mt-2 space-y-3">
+                      <label className="block text-slate-700 mb-1 font-medium">اكتب سؤالك التكميلي المتعلق بنفس القضية:</label>
+                      <textarea
+                        className="w-full h-20 p-2 border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-yellow-400 text-right"
+                        placeholder="مثال: ما هو موقف القانون المغربي من الوقائع التالية..."
+                        value={followupQuestion}
+                        onChange={e => setFollowupQuestion(e.target.value)}
+                        disabled={isFollowupLoading}
+                        dir="rtl"
+                      />
+                      <div className="flex gap-2 justify-end">
+                        <button
+                          className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded font-medium"
+                          onClick={() => { setShowFollowupBox(false); setFollowupQuestion(''); setFollowupAnswer(null); setFollowupError(null); }}
+                          disabled={isFollowupLoading}
+                        >إلغاء</button>
+                        <button
+                          className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded font-bold disabled:bg-yellow-300"
+                          onClick={handleSendFollowup}
+                          disabled={isFollowupLoading || !followupQuestion.trim()}
+                        >{isFollowupLoading ? 'جاري الإرسال...' : 'إرسال السؤال'}</button>
+                      </div>
+                      {followupError && <div className="text-red-600 text-sm mt-1">{followupError}</div>}
                     </div>
-                    <h2 className="text-xl font-bold text-primary-900 font-heading">تفاصيل النازلة</h2>
+                  )}
+                  {followupAnswer && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4 text-right whitespace-pre-line text-blue-900">
+                      <div className="font-bold mb-2 text-blue-800">الجواب القانوني التكميلي:</div>
+                      <div>{followupAnswer}</div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Left Column - Input */}
+            <div className="space-y-6 order-1 lg:order-2" dir="rtl">
+              <div className="glass rounded-2xl p-8 animate-slide-up">
+                <div className="flex items-center gap-3 mb-6 border-b border-white/5 pb-4">
+                  <div className="p-2 bg-blue-500/10 rounded-lg">
+                    <img src="/logo.svg" className="w-8 h-8 opacity-80" alt="icon" />
                   </div>
+                  <h2 className="text-xl font-bold text-slate-100 font-heading glow-blue">تفاصيل النازلة</h2>
+                </div>
 
-                  {/* Title Input */}
-                  <div className="mb-6">
-                    <label className="block text-sm font-semibold text-primary-800 mb-2">عنوان القضية (اختياري)</label>
-                    <input
-                      type="text"
-                      className="w-full p-4 bg-white/50 border border-secondary-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-secondary-400 focus:bg-white transition-all text-right placeholder-slate-400"
-                      placeholder="مثال: نزاع عقاري حول ملكية أرض"
-                      value={caseTitle}
-                      onChange={e => setCaseTitle(e.target.value)}
-                      dir="rtl"
-                    />
-                  </div>
-
-
-                  <label className="block text-sm font-semibold text-primary-800 mb-2">الوقائع والتفاصيل</label>
-                  <textarea
-                    className="w-full h-48 p-4 bg-white/50 border border-secondary-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-secondary-400 focus:bg-white transition-all text-right placeholder-slate-400 leading-relaxed resize-none"
-                    placeholder="يرجى وصف تفاصيل القضية، الأطراف المعنية، الوقائع الأساسية، وأي ظروف ذات صلة…"
-                    value={caseText}
-                    onChange={e => setCaseText(e.target.value)}
+                {/* Title Input */}
+                <div className="mb-6">
+                  <label className="block text-sm font-semibold text-slate-300 mb-2">عنوان القضية (اختياري)</label>
+                  <input
+                    type="text"
+                    className="w-full p-4 bg-white/50 border border-secondary-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-secondary-400 focus:bg-white transition-all text-right placeholder-slate-400"
+                    placeholder="مثال: نزاع عقاري حول ملكية أرض"
+                    value={caseTitle}
+                    onChange={e => setCaseTitle(e.target.value)}
                     dir="rtl"
                   />
                 </div>
-                {/* Clarifying Questions */}
-                {caseText.trim() && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-2" dir="rtl">
-                    <div className="flex justify-between items-center mb-2">
-                      <h4 className="text-md font-semibold text-blue-800">أسئلة توضيحية مقترحة</h4>
-                      <button
-                        onClick={handleSuggestQuestions}
-                        disabled={isQuestionsLoading}
-                        className="text-xs bg-blue-100 hover:bg-blue-200 text-blue-800 px-3 py-1 rounded transition-colors"
-                      >
-                        {isQuestionsLoading ? 'جاري التوليد...' : 'اقترح أسئلة'}
-                      </button>
-                    </div>
-                    {isQuestionsLoading ? (
-                      <div className="text-blue-600">جاري توليد الأسئلة...</div>
-                    ) : clarifyingQuestions.length > 0 ? (
-                      <ul className="list-disc list-inside text-blue-900 space-y-1 pr-2">
-                        {clarifyingQuestions.map((q, idx) => (
-                          <li key={idx}>{q}</li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <div className="text-slate-500">لا توجد أسئلة توضيحية حالياً.</div>
-                    )}
-                    {clarifyingQuestionsRaw && clarifyingQuestions.length <= 1 && (
-                      <pre className="text-xs text-slate-400 mt-2 whitespace-pre-wrap">{clarifyingQuestionsRaw}</pre>
-                    )}
-                  </div>
-                )}
-                {/* Action Buttons */}
-                <div className="flex gap-4" dir="rtl">
-                  <button
-                    onClick={handleAnalyzeCase}
-                    disabled={isLoading || !caseText.trim()}
-                    className="flex-1 flex items-center justify-center gap-3 px-6 py-4 bg-gradient-to-r from-primary-700 to-primary-900 hover:from-primary-800 hover:to-primary-950 disabled:from-slate-400 disabled:to-slate-500 disabled:cursor-not-allowed text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5"
-                  >
-                    {isLoading ? (
-                      <>
-                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        <span>جاري التحليل...</span>
-                      </>
-                    ) : (
-                      <>
-                        <span>🚀</span>
-                        <span>بدء التحليل القانوني</span>
-                      </>
-                    )}
-                  </button>
-                  <button
-                    onClick={handleClearAll}
-                    className="px-6 py-4 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl font-medium shadow-sm hover:shadow transition-all"
-                  >
-                    مسح
-                  </button>
-                </div>
-                {/* Quick Info */}
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4" dir="rtl">
-                  <div className="flex items-start gap-3">
-                    <div>
-                      <h4 className="text-sm font-medium text-amber-800 mb-1">إرشادات التحليل</h4>
-                      <ul className="text-sm text-amber-700 space-y-1">
-                        <li>• قدم وقائع القضية والظروف بتفصيل</li>
-                        <li>• اذكر الأطراف المعنية وأدوارهم</li>
-                        <li>• أضف أي تساؤلات أو إشكالات قانونية</li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-                {/* Transcription Section */}
-                <div className="bg-white rounded-lg shadow p-6">
-                  <h2 className="text-xl font-bold mb-2 text-slate-800">أدوات ذكية</h2>
-                  <div className="flex gap-4 flex-wrap">
-                    {/* Audio Section */}
-                    <div className="flex-1 min-w-[200px]">
-                      <h3 className="text-sm font-semibold text-slate-600 mb-2">نسخ الصوت إلى نص</h3>
-                      <input
-                        type="file"
-                        accept="audio/*"
-                        onChange={e => {
-                          console.log('Input file changed', e);
-                          handleTranscribeAudio(e);
-                        }}
-                        ref={fileInputRef}
-                        className="hidden"
-                        id="audio-upload"
-                        disabled={isTranscribing}
-                      />
-                      <label
-                        htmlFor="audio-upload"
-                        className={`flex items-center justify-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium cursor-pointer transition-all ${isTranscribing ? 'opacity-50 cursor-not-allowed' : ''}`}
-                      >
-                        {isTranscribing ? 'جاري التحويل...' : 'رفع ملف صوتي'}
-                      </label>
-                    </div>
 
-                    {/* Image Section */}
-                    <div className="flex-1 min-w-[200px]">
-                      <h3 className="text-sm font-semibold text-slate-600 mb-2">تحويل صورة إلى نص</h3>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageUpload}
-                        className="hidden"
-                        id="image-upload"
-                        disabled={isOcrLoading}
-                      />
-                      <label
-                        htmlFor="image-upload"
-                        className={`flex items-center justify-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg font-medium cursor-pointer transition-all ${isOcrLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                      >
-                        {isOcrLoading ? 'جاري الاستخراج...' : 'رفع صورة مستند'}
-                      </label>
-                    </div>
+
+                <label className="block text-sm font-semibold text-slate-300 mb-2">الوقائع والتفاصيل</label>
+                <textarea
+                  className="w-full h-48 p-4 bg-slate-900/50 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:bg-slate-900 transition-all text-right placeholder-slate-500 text-slate-200 leading-relaxed resize-none"
+                  placeholder="يرجى وصف تفاصيل القضية، الأطراف المعنية، الوقائع الأساسية، وأي ظروف ذات صلة…"
+                  value={caseText}
+                  onChange={e => setCaseText(e.target.value)}
+                  dir="rtl"
+                />
+              </div>
+              {/* Clarifying Questions */}
+              {caseText.trim() && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-2" dir="rtl">
+                  <div className="flex justify-between items-center mb-2">
+                    <h4 className="text-md font-semibold text-blue-800">أسئلة توضيحية مقترحة</h4>
+                    <button
+                      onClick={handleSuggestQuestions}
+                      disabled={isQuestionsLoading}
+                      className="text-xs bg-blue-100 hover:bg-blue-200 text-blue-800 px-3 py-1 rounded transition-colors"
+                    >
+                      {isQuestionsLoading ? 'جاري التوليد...' : 'اقترح أسئلة'}
+                    </button>
                   </div>
-                  {transcriptionResult && (
-                    <div className="mt-4 p-3 bg-gray-50 border rounded text-right whitespace-pre-wrap text-slate-800" style={{ maxHeight: '200px', overflowY: 'auto' }}>
-                      <strong>النص المحول:</strong>
-                      <div>{transcriptionResult}</div>
-                    </div>
+                  {isQuestionsLoading ? (
+                    <div className="text-blue-600">جاري توليد الأسئلة...</div>
+                  ) : clarifyingQuestions.length > 0 ? (
+                    <ul className="list-disc list-inside text-blue-900 space-y-1 pr-2">
+                      {clarifyingQuestions.map((q, idx) => (
+                        <li key={idx}>{q}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <div className="text-slate-500">لا توجد أسئلة توضيحية حالياً.</div>
+                  )}
+                  {clarifyingQuestionsRaw && clarifyingQuestions.length <= 1 && (
+                    <pre className="text-xs text-slate-400 mt-2 whitespace-pre-wrap">{clarifyingQuestionsRaw}</pre>
                   )}
                 </div>
-                {/* Report Generation Section */}
-                <div className="bg-white rounded-lg shadow p-6">
-                  <h2 className="text-xl font-bold mb-2 text-slate-800">توليد التقرير</h2>
-                  <p className="text-sm text-slate-600 mb-4">
-                    التقرير يحتوي على النص العربي المحول إلى الحروف اللاتينية للتوافق مع PDF
-                  </p>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => {
-                        if (!analysis) {
-                          setError('يرجى تحليل القضية أولاً.');
-                          return;
-                        }
-                        if (resultsPanelRef.current) {
-                          resultsPanelRef.current.print();
-                        }
-                      }}
-                      disabled={isLoading || !analysis}
-                      className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg font-medium"
-                    >
-                      {isLoading ? 'جاري توليد التقرير...' : 'توليد تقرير PDF'}
-                    </button>
-
-                    <button
-                      onClick={() => setShowDiagnostics(true)}
-                      className="px-3 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg font-medium text-sm"
-                      title="تشخيص مشاكل توليد التقرير"
-                    >
-                      🔧
-                    </button>
+              )}
+              {/* Action Buttons */}
+              <div className="flex gap-4" dir="rtl">
+                <button
+                  onClick={handleAnalyzeCase}
+                  disabled={isLoading || !caseText.trim()}
+                  className="flex-1 flex items-center justify-center gap-3 px-6 py-4 bg-gradient-to-r from-primary-700 to-primary-900 hover:from-primary-800 hover:to-primary-950 disabled:from-slate-400 disabled:to-slate-500 disabled:cursor-not-allowed text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5"
+                >
+                  {isLoading ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <span>جاري التحليل...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>🚀</span>
+                      <span>بدء التحليل القانوني</span>
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={handleClearAll}
+                  className="px-6 py-4 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl font-medium shadow-sm hover:shadow transition-all"
+                >
+                  مسح
+                </button>
+              </div>
+              {/* Quick Info */}
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4" dir="rtl">
+                <div className="flex items-start gap-3">
+                  <div>
+                    <h4 className="text-sm font-medium text-amber-800 mb-1">إرشادات التحليل</h4>
+                    <ul className="text-sm text-amber-700 space-y-1">
+                      <li>• قدم وقائع القضية والظروف بتفصيل</li>
+                      <li>• اذكر الأطراف المعنية وأدوارهم</li>
+                      <li>• أضف أي تساؤلات أو إشكالات قانونية</li>
+                    </ul>
                   </div>
                 </div>
               </div>
+              {/* Transcription Section */}
+              <div className="bg-white rounded-lg shadow p-6">
+                <h2 className="text-xl font-bold mb-2 text-slate-800">أدوات ذكية</h2>
+                <div className="flex gap-4 flex-wrap">
+                  {/* Audio Section */}
+                  <div className="flex-1 min-w-[200px]">
+                    <h3 className="text-sm font-semibold text-slate-600 mb-2">نسخ الصوت إلى نص</h3>
+                    <input
+                      type="file"
+                      accept="audio/*"
+                      onChange={e => {
+                        console.log('Input file changed', e);
+                        handleTranscribeAudio(e);
+                      }}
+                      ref={fileInputRef}
+                      className="hidden"
+                      id="audio-upload"
+                      disabled={isTranscribing}
+                    />
+                    <label
+                      htmlFor="audio-upload"
+                      className={`flex items-center justify-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium cursor-pointer transition-all ${isTranscribing ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
+                      {isTranscribing ? 'جاري التحويل...' : 'رفع ملف صوتي'}
+                    </label>
+                  </div>
+
+                  {/* Image Section */}
+                  <div className="flex-1 min-w-[200px]">
+                    <h3 className="text-sm font-semibold text-slate-600 mb-2">تحويل صورة إلى نص</h3>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                      id="image-upload"
+                      disabled={isOcrLoading}
+                    />
+                    <label
+                      htmlFor="image-upload"
+                      className={`flex items-center justify-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg font-medium cursor-pointer transition-all ${isOcrLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
+                      {isOcrLoading ? 'جاري الاستخراج...' : 'رفع صورة مستند'}
+                    </label>
+                  </div>
+                </div>
+                {transcriptionResult && (
+                  <div className="mt-4 p-3 bg-gray-50 border rounded text-right whitespace-pre-wrap text-slate-800" style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                    <strong>النص المحول:</strong>
+                    <div>{transcriptionResult}</div>
+                  </div>
+                )}
+              </div>
+              {/* Report Generation Section */}
+              <div className="bg-white rounded-lg shadow p-6">
+                <h2 className="text-xl font-bold mb-2 text-slate-800">توليد التقرير</h2>
+                <p className="text-sm text-slate-600 mb-4">
+                  التقرير يحتوي على النص العربي المحول إلى الحروف اللاتينية للتوافق مع PDF
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      if (!analysis) {
+                        setError('يرجى تحليل القضية أولاً.');
+                        return;
+                      }
+                      if (resultsPanelRef.current) {
+                        resultsPanelRef.current.print();
+                      }
+                    }}
+                    disabled={isLoading || !analysis}
+                    className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg font-medium"
+                  >
+                    {isLoading ? 'جاري توليد التقرير...' : 'توليد تقرير PDF'}
+                  </button>
+
+                  <button
+                    onClick={() => setShowDiagnostics(true)}
+                    className="px-3 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg font-medium text-sm"
+                    title="تشخيص مشاكل توليد التقرير"
+                  >
+                    🔧
+                  </button>
+                </div>
+              </div>
             </div>
+          </div>
           )}
         </main>
 
