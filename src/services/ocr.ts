@@ -95,10 +95,12 @@ export async function extractTextFromImage(file: File): Promise<string> {
             if (response.success) {
                 return response.result || response.analysis;
             } else {
+                console.error('OCR Function Error Response:', response);
                 throw new Error(response.error || "OCR failed");
             }
         } else {
-            throw new Error("Execution failed or timed out");
+            console.error('OCR Execution Failed. Full Execution Object:', execution);
+            throw new Error(`Execution ended with status: ${execution.status}. Error: ${execution.errors || 'Unknown timeout or failure'}`);
         }
     } catch (error: any) {
         console.error('OCR Error:', error);
