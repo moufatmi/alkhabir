@@ -41,42 +41,65 @@ const AdminDashboard: React.FC = () => {
         try {
           const { default: databaseService } = await import('../services/database');
           const cases = await databaseService.getAllCases();
-          // setAllCases(cases);
-          setRecentCases(cases.slice(0, 5)); // Take top 5 recent cases
+          const subscriptions = await databaseService.getAllSubscriptions();
 
-          // Calculate Stats
-          const uniqueUserIds = new Set(cases.map(c => c.user_id));
-          const usersList = Array.from(uniqueUserIds).map(uid => {
-            const userCases = cases.filter(c => c.user_id === uid);
-            const lastCase = userCases.sort((a, b) => new Date(b.$createdAt).getTime() - new Date(a.$createdAt).getTime())[0];
-            return {
-              id: uid,
-              // We don't have profile data, so we improvise
-              name: `Client ${uid.substring(0, 5)}...`,
-              email: 'N/A', // No email in case doc
-              casesCount: userCases.length,
-              lastActive: lastCase.$createdAt,
-              status: 'active'
-            };
+          setRecentCases(cases.slice(0, 5));
+
+          // Aggregate Users from both collections
+          const userMap = new Map();
+
+          // Process Cases
+          cases.forEach((c: any) => {
+            if (!userMap.has(c.user_id)) {
+              userMap.set(c.user_id, {
+                id: c.user_id,
+                name: `Client ${c.user_id.substring(0, 5)}...`,
+                email: 'N/A',
+                casesCount: 0,
+                lastActive: c.$createdAt,
+                status: 'active'
+              });
+            }
+            const userData = userMap.get(c.user_id);
+            userData.casesCount++;
+            if (new Date(c.$createdAt) > new Date(userData.lastActive)) {
+              userData.lastActive = c.$createdAt;
+            }
           });
-          setUniqueUsers(usersList);
 
-          // Fetch Subscriptions for Stats
-          let activeSubsCount = 0;
-          let revenueTotal = 0;
-          try {
-            const subs = await databaseService.getAllSubscriptions();
-            activeSubsCount = subs.filter((s: any) => s.status === 'active').length;
-            revenueTotal = subs.reduce((acc: number, curr: any) => acc + Number(curr.amount || 0), 0);
-          } catch (e) {
-            console.log("Could not fetch subscriptions for stats yet");
-          }
+          // Process Subscriptions (for better names/emails and identifying users without cases)
+          subscriptions.forEach((s: any) => {
+            if (!userMap.has(s.user_id)) {
+              userMap.set(s.user_id, {
+                id: s.user_id,
+                name: s.user_name || `Client ${s.user_id.substring(0, 5)}...`,
+                email: s.user_email || 'N/A',
+                casesCount: 0,
+                lastActive: s.$createdAt,
+                status: 'active'
+              });
+            } else {
+              const userData = userMap.get(s.user_id);
+              if (s.user_name) userData.name = s.user_name;
+              if (s.user_email) userData.email = s.user_email;
+              if (new Date(s.$createdAt) > new Date(userData.lastActive)) {
+                userData.lastActive = s.$createdAt;
+              }
+            }
+          });
+
+          const usersList = Array.from(userMap.values());
+          setUniqueUsers(usersList.sort((a, b) => new Date(b.lastActive).getTime() - new Date(a.lastActive).getTime()));
+
+          // Stats
+          const activeSubs = subscriptions.filter((s: any) => s.status === 'active');
+          const revenue = subscriptions.reduce((acc: number, curr: any) => acc + Number(curr.amount || 0), 0);
 
           setStats({
-            totalUsers: uniqueUserIds.size,
+            totalUsers: userMap.size,
             totalCases: cases.length,
-            activeSubscriptions: activeSubsCount,
-            revenue: revenueTotal
+            activeSubscriptions: activeSubs.length,
+            revenue: revenue
           });
         } catch (error) {
           console.error("Failed to fetch admin data", error);

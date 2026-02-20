@@ -177,7 +177,7 @@ class DatabaseService {
                 {
                     ...data,
                     user_id: user.$id,
-                    // user_name: user.name, // If schema allows, good for admin view
+                    user_name: user.name,
                     user_email: user.email,
                 }
             );

@@ -52,12 +52,12 @@ const AdminUsersTab: React.FC<{ users?: any[] }> = ({ users = [] }) => {
                                 <tr key={user.id} className="hover:bg-slate-50 transition-colors group">
                                     <td className="p-4">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-bold">
-                                                {user.name.charAt(7) || 'U'}
+                                            <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-bold uppercase">
+                                                {user.name.charAt(0) || 'U'}
                                             </div>
                                             <div>
                                                 <p className="font-bold text-slate-800" title={user.id}>{user.name}</p>
-                                                <p className="text-xs text-slate-500">{user.id}</p>
+                                                <p className="text-xs text-slate-500">{user.email !== 'N/A' ? user.email : user.id}</p>
                                             </div>
                                         </div>
                                     </td>
